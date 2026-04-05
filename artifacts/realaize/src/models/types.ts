@@ -370,6 +370,22 @@ export interface DevelopmentProject {
   irr10Year?: number;
   sellNetProfit?: number;
   sellIRR?: number;
+  debtAssumptions?: DevDebtAssumptions;
+  valuationAssumptions?: DevValuationAssumptions;
+}
+
+export interface DevDebtAssumptions {
+  ltvPct: number;
+  ltcPct: number;
+  interestRatePct: number;
+  loanType: 'Bullet' | 'Annuität';
+  annuityTermYears?: number;
+}
+
+export interface DevValuationAssumptions {
+  opexPct: number;
+  exitYieldPct: number;
+  purchasingCostsPct: number;
 }
 
 export interface AnnualCashFlow {

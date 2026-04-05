@@ -29,6 +29,7 @@ export function SalesPage() {
   const { sales } = useStore();
   const { t, lang } = useLanguage();
   const dateLocale = lang === 'de' ? 'de-DE' : 'en-GB';
+  const [activeTab, setActiveTab] = useState<'aktiv' | 'uebersicht'>('aktiv');
 
   const activeSales = sales.filter(s => s.status !== 'Verkauft');
   const pastSales = sales.filter(s => s.status === 'Verkauft');
@@ -43,6 +44,8 @@ export function SalesPage() {
       .reduce((sum, s) => sum + (s.disposalGain || 0), 0);
   })();
 
+  const totalRealised = pastSales.reduce((s, sale) => s + (sale.disposalGain || 0), 0);
+
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
       <PageHeader
@@ -56,92 +59,148 @@ export function SalesPage() {
         }
       />
 
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <KPICard label="Assets for Sale" value={`${activeSales.length}`} status="neutral" />
-        <KPICard label="Asking Volume" value={formatEUR(totalVolume, true)} status="neutral" />
-        <KPICard label="Est. Gross Profit" value={formatEUR(totalProfit, true)} status={totalProfit > 0 ? 'good' : 'danger'} />
-        <KPICard label="Veräußerungsgewinn YTD" value={formatEUR(ytdGain, true)} status={ytdGain > 0 ? 'good' : 'neutral'} sub={`${pastSales.filter(s => s.soldAt && s.soldAt >= new Date(new Date().getFullYear(), 0, 1).toISOString()).length} Verkäufe`} />
+      {/* Tab switcher */}
+      <div className="flex gap-1 p-1 rounded-xl mb-6" style={{ background: 'rgba(0,0,0,0.04)', display: 'inline-flex' }}>
+        {([
+          { key: 'aktiv', label: `Aktiv (${activeSales.length})` },
+          { key: 'uebersicht', label: `Übersicht (${pastSales.length})` },
+        ] as const).map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            style={{
+              background: activeTab === tab.key ? 'rgba(255,255,255,0.85)' : 'transparent',
+              color: activeTab === tab.key ? '#1c1c1e' : 'rgba(60,60,67,0.55)',
+              border: activeTab === tab.key ? '1px solid rgba(0,0,0,0.08)' : '1px solid transparent',
+              cursor: 'pointer',
+              boxShadow: activeTab === tab.key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-5 mb-10">
-        {activeSales.map(sale => {
-          const activeBuyers = sale.buyers.filter(b => b.stage !== 'Abgesagt');
-          const leadBuyer = sale.buyers.find(b => b.stage === 'Due Diligence' || b.stage === 'LOI' || b.stage === 'Signing');
-          const grossProfit = sale.askingPrice - sale.totalCost;
-          return (
-            <Link key={sale.id} to={`/sales/${sale.id}`} style={{ textDecoration: 'none' }}>
-              <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-                <TitleImageDisplay entityId={sale.id} height={150} />
-                <div style={{ padding: 20 }}>
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1c1c1e', margin: 0 }}>{sale.name}</h3>
-                      <div style={{ fontSize: 12, color: 'rgba(60,60,67,0.50)', marginTop: 2 }}>{sale.city} · {sale.usageType}</div>
-                    </div>
-                    <span className={sale.status === 'Aktiv' ? 'badge-success' : sale.status === 'Closing' ? 'badge-accent' : 'badge-neutral'}>{sale.status}</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                      <div style={{ fontSize: 10, color: 'rgba(60,60,67,0.45)', textTransform: 'uppercase' }}>Asking Price</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: '#007aff' }}>{formatEUR(sale.askingPrice, true)}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 10, color: 'rgba(60,60,67,0.45)', textTransform: 'uppercase' }}>Bruttogewinn</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: grossProfit > 0 ? '#1a7f37' : '#cc1a14' }}>{formatEUR(grossProfit, true)}</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="badge-neutral">{activeBuyers.length} Interessenten</span>
-                    {leadBuyer && <span className={STAGE_COLOR[leadBuyer.stage]}>{leadBuyer.name} — {leadBuyer.stage}</span>}
-                  </div>
-                </div>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* ── Past Sales ── */}
-      {pastSales.length > 0 && (
-        <div className="mb-10">
-          <div className="flex items-center gap-3 mb-4">
-            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1c1c1e', margin: 0 }}>Vergangene Verkäufe</h2>
-            <span className="badge-neutral">{pastSales.length}</span>
+      {/* ── AKTIV ── */}
+      {activeTab === 'aktiv' && (
+        <>
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            <KPICard label="Assets for Sale" value={`${activeSales.length}`} status="neutral" />
+            <KPICard label="Asking Volume" value={formatEUR(totalVolume, true)} status="neutral" />
+            <KPICard label="Est. Gross Profit" value={formatEUR(totalProfit, true)} status={totalProfit > 0 ? 'good' : 'danger'} />
+            <KPICard label="Veräußerungsgewinn YTD" value={formatEUR(ytdGain, true)} status={ytdGain > 0 ? 'good' : 'neutral'} sub={`${pastSales.filter(s => s.soldAt && s.soldAt >= new Date(new Date().getFullYear(), 0, 1).toISOString()).length} Verkäufe`} />
           </div>
-          <GlassPanel style={{ overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                  {['Objekt', 'Stadt', 'Nutzung', 'Verkaufspreis', 'Gesamtkosten', 'Veräußerungsgewinn', 'Verkauft am'].map(h => (
-                    <th key={h} style={{ padding: '12px 16px', fontSize: 11, fontWeight: 600, color: 'rgba(60,60,67,0.45)', textAlign: 'left', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {pastSales.map(sale => {
-                  const gain = sale.disposalGain || (sale.soldPrice ? sale.soldPrice - sale.totalCost : 0);
-                  return (
-                    <tr key={sale.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                      <td style={{ padding: '14px 16px' }}>
-                        <Link to={`/sales/${sale.id}`} style={{ textDecoration: 'none' }}>
-                          <div style={{ fontSize: 14, fontWeight: 600, color: '#1c1c1e' }}>{sale.name}</div>
-                          <div style={{ fontSize: 11, color: 'rgba(60,60,67,0.45)' }}>{sale.address}</div>
-                        </Link>
-                      </td>
-                      <td style={{ padding: '14px 16px', fontSize: 13, color: 'rgba(60,60,67,0.70)' }}>{sale.city}</td>
-                      <td style={{ padding: '14px 16px' }}><span className="badge-neutral">{sale.usageType}</span></td>
-                      <td style={{ padding: '14px 16px', fontFamily: 'ui-monospace, monospace', fontSize: 13, fontWeight: 600, color: '#007aff' }}>{sale.soldPrice ? formatEUR(sale.soldPrice, true) : '—'}</td>
-                      <td style={{ padding: '14px 16px', fontFamily: 'ui-monospace, monospace', fontSize: 13 }}>{formatEUR(sale.totalCost, true)}</td>
-                      <td style={{ padding: '14px 16px', fontFamily: 'ui-monospace, monospace', fontSize: 13, fontWeight: 700, color: gain >= 0 ? '#1a7f37' : '#cc1a14' }}>{gain >= 0 ? '+' : ''}{formatEUR(gain, true)}</td>
-                      <td style={{ padding: '14px 16px', fontSize: 13, color: 'rgba(60,60,67,0.60)' }}>{sale.soldAt ? new Date(sale.soldAt).toLocaleDateString(dateLocale) : '—'}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </GlassPanel>
+
+          <div className="grid grid-cols-3 gap-5">
+            {activeSales.map(sale => {
+              const activeBuyers = sale.buyers.filter(b => b.stage !== 'Abgesagt');
+              const leadBuyer = sale.buyers.find(b => b.stage === 'Due Diligence' || b.stage === 'LOI' || b.stage === 'Signing');
+              const grossProfit = sale.askingPrice - sale.totalCost;
+              return (
+                <Link key={sale.id} to={`/sales/${sale.id}`} style={{ textDecoration: 'none' }}>
+                  <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
+                    <TitleImageDisplay entityId={sale.id} height={150} />
+                    <div style={{ padding: 20 }}>
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h3 style={{ fontSize: 15, fontWeight: 700, color: '#1c1c1e', margin: 0 }}>{sale.name}</h3>
+                          <div style={{ fontSize: 12, color: 'rgba(60,60,67,0.50)', marginTop: 2 }}>{sale.city} · {sale.usageType}</div>
+                        </div>
+                        <span className={sale.status === 'Aktiv' ? 'badge-success' : sale.status === 'Closing' ? 'badge-accent' : 'badge-neutral'}>{sale.status}</span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <div style={{ fontSize: 10, color: 'rgba(60,60,67,0.45)', textTransform: 'uppercase' }}>Asking Price</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: '#007aff' }}>{formatEUR(sale.askingPrice, true)}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 10, color: 'rgba(60,60,67,0.45)', textTransform: 'uppercase' }}>Bruttogewinn</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: grossProfit > 0 ? '#1a7f37' : '#cc1a14' }}>{formatEUR(grossProfit, true)}</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="badge-neutral">{activeBuyers.length} Interessenten</span>
+                        {leadBuyer && <span className={STAGE_COLOR[leadBuyer.stage]}>{leadBuyer.name} — {leadBuyer.stage}</span>}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+            {activeSales.length === 0 && (
+              <div className="col-span-3" style={{ textAlign: 'center', padding: 48, color: 'rgba(60,60,67,0.40)', fontSize: 13 }}>
+                Keine aktiven Verkäufe vorhanden.
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ── ÜBERSICHT (vergangene Verkäufe) ── */}
+      {activeTab === 'uebersicht' && (
+        <div className="animate-fade-in">
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <KPICard label="Abgeschlossene Verkäufe" value={`${pastSales.length}`} status="neutral" />
+            <KPICard label="Veräußerungsgewinn YTD" value={formatEUR(ytdGain, true)} status={ytdGain > 0 ? 'good' : 'neutral'} />
+            <KPICard label="Realisierter Gewinn Gesamt" value={formatEUR(totalRealised, true)} status={totalRealised > 0 ? 'good' : 'neutral'} />
+          </div>
+
+          {pastSales.length > 0 ? (
+            <GlassPanel style={{ overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                    {['Objekt', 'Stadt', 'Nutzung', 'Verkaufspreis', 'Gesamtkosten', 'Veräußerungsgewinn', 'Verkauft am'].map(h => (
+                      <th key={h} style={{ padding: '12px 16px', fontSize: 11, fontWeight: 600, color: 'rgba(60,60,67,0.45)', textAlign: 'left', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {pastSales.map(sale => {
+                    const gain = sale.disposalGain || (sale.soldPrice ? sale.soldPrice - sale.totalCost : 0);
+                    return (
+                      <tr key={sale.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                        <td style={{ padding: '14px 16px' }}>
+                          <Link to={`/sales/${sale.id}`} style={{ textDecoration: 'none' }}>
+                            <div style={{ fontSize: 14, fontWeight: 600, color: '#1c1c1e' }}>{sale.name}</div>
+                            <div style={{ fontSize: 11, color: 'rgba(60,60,67,0.45)' }}>{sale.address}</div>
+                          </Link>
+                        </td>
+                        <td style={{ padding: '14px 16px', fontSize: 13, color: 'rgba(60,60,67,0.70)' }}>{sale.city}</td>
+                        <td style={{ padding: '14px 16px' }}><span className="badge-neutral">{sale.usageType}</span></td>
+                        <td style={{ padding: '14px 16px', fontFamily: 'ui-monospace, monospace', fontSize: 13, fontWeight: 600, color: '#007aff' }}>{sale.soldPrice ? formatEUR(sale.soldPrice, true) : '—'}</td>
+                        <td style={{ padding: '14px 16px', fontFamily: 'ui-monospace, monospace', fontSize: 13 }}>{formatEUR(sale.totalCost, true)}</td>
+                        <td style={{ padding: '14px 16px', fontFamily: 'ui-monospace, monospace', fontSize: 13, fontWeight: 700, color: gain >= 0 ? '#1a7f37' : '#cc1a14' }}>{gain >= 0 ? '+' : ''}{formatEUR(gain, true)}</td>
+                        <td style={{ padding: '14px 16px', fontSize: 13, color: 'rgba(60,60,67,0.60)' }}>{sale.soldAt ? new Date(sale.soldAt).toLocaleDateString(dateLocale) : '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr style={{ background: 'rgba(0,0,0,0.02)', borderTop: '2px solid rgba(0,0,0,0.07)' }}>
+                    <td colSpan={3} style={{ padding: '10px 16px', fontSize: 12, fontWeight: 700, color: 'rgba(60,60,67,0.55)' }}>GESAMT</td>
+                    <td style={{ padding: '10px 16px', fontFamily: 'ui-monospace, monospace', fontSize: 12, fontWeight: 700, color: '#007aff' }}>
+                      {formatEUR(pastSales.reduce((s, sale) => s + (sale.soldPrice || 0), 0), true)}
+                    </td>
+                    <td style={{ padding: '10px 16px', fontFamily: 'ui-monospace, monospace', fontSize: 12, fontWeight: 700 }}>
+                      {formatEUR(pastSales.reduce((s, sale) => s + sale.totalCost, 0), true)}
+                    </td>
+                    <td style={{ padding: '10px 16px', fontFamily: 'ui-monospace, monospace', fontSize: 12, fontWeight: 700, color: totalRealised >= 0 ? '#1a7f37' : '#cc1a14' }}>
+                      {totalRealised >= 0 ? '+' : ''}{formatEUR(totalRealised, true)}
+                    </td>
+                    <td />
+                  </tr>
+                </tfoot>
+              </table>
+            </GlassPanel>
+          ) : (
+            <GlassPanel style={{ padding: 48, textAlign: 'center' }}>
+              <div style={{ color: 'rgba(60,60,67,0.40)', fontSize: 13 }}>Noch keine abgeschlossenen Verkäufe vorhanden.</div>
+            </GlassPanel>
+          )}
         </div>
       )}
     </div>
