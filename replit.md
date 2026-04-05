@@ -97,12 +97,36 @@ Utility scripts package. Each script is a `.ts` file in `src/` with a correspond
 
 ### `artifacts/realaize` (`@workspace/realaize`)
 
-React + Vite frontend application (real estate portfolio manager). Uses React Router, Zustand for state management, TailwindCSS, and Radix UI components.
+React + Vite frontend application (real estate portfolio manager "Realaize" by Lestate Real GmbH). Uses React Router, Zustand for state management, TailwindCSS, and Radix UI components. All data is frontend-only via Zustand with localStorage persistence (key: `restate-storage-v3`).
 
 - Entry: `src/main.tsx`
 - App: `src/App.tsx` — sets up React Router with all pages
 - Requires env vars: `PORT=5000`, `BASE_PATH=/`
 - Dev command: `PORT=5000 BASE_PATH=/ pnpm --filter @workspace/realaize run dev`
+- Language: German UI throughout
+- Store: `src/store/useStore.ts` — Zustand with persist (v3 key)
+- Types: `src/models/types.ts` — all domain types
+- Mock data: `src/data/mockData.ts` — 3 assets, 2+ developments, 3 sales, 22 contacts, news, radar listings, appointments
+- KPI engine: `src/utils/kpiEngine.ts` — NOI, LTV, DSCR calculations
+
+**Pages** (in `src/pages/`):
+- `Portfolio.tsx` — dashboard overview
+- `Assets.tsx` — asset detail with Operating Costs tab (includes `rentalGrowthRate` field)
+- `Developments.tsx` — development project tracking
+- `Sales.tsx` — sales pipeline
+- `Acquisition.tsx` — deal underwriting
+- `OtherPages.tsx` — CashFlow (10-year model), Markt, Documents, AI Copilot, Settings, News, Deal Radar
+
+**Cash Flow Page (10-Year Model)**:
+- Located in `OtherPages.tsx` → `CashFlowPage()`
+- Shows portfolio-level annual cash flows: NOI block, Transactions block, Debt block, Free Cashflow
+- Base year = earliest acquisition date across all assets + developments
+- `rentalGrowthRate` on `AssetOperatingCosts` (default 2.0%) controls annual rent indexation
+- Sales linked via `SaleObject.sourceId` matching `asset.id` or `development.id`
+- Developments contribute capex during construction, rent after `plannedEndDate`
+- Table: 10 year columns + Total, expandable sections, sticky row labels
+- KPI cards: NOI 10J Gesamt, Ø NOI p.a., Free Cashflow 10J, Verkaufserlöse gesamt
+- Chart: ComposedChart — NOI bars + Free CF bars + Cumulative line
 
 ## Replit Setup
 

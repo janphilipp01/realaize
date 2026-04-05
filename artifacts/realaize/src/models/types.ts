@@ -43,6 +43,7 @@ export interface AssetOperatingCosts {
   maintenanceReservePerSqm: number; // EUR/sqm/year
   nonRecoverableOpex: number;       // EUR/year
   otherOperatingIncome: number;     // EUR/year (e.g. parking, antennas)
+  rentalGrowthRate: number;         // % p.a., default 2.0
 }
 
 export interface Unit {

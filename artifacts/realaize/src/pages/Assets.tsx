@@ -336,6 +336,7 @@ export function AssetDetailPage() {
                 { label: 'Maintenance Reserve', key: 'maintenanceReservePerSqm', unit: '€/m²/year', step: 1 },
                 { label: 'Non-Recoverable Opex', key: 'nonRecoverableOpex', unit: '€/year', step: 1000 },
                 { label: 'Other Operating Income', key: 'otherOperatingIncome', unit: '€/year', step: 1000 },
+                { label: 'Mietindexierung', key: 'rentalGrowthRate', unit: '% p.a.', step: 0.1 },
               ].map(field => (
                 <div key={field.key}>
                   <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(60,60,67,0.50)', display: 'block', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>

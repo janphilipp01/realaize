@@ -29,6 +29,7 @@ export const mockAssets: Asset[] = [
       maintenanceReservePerSqm: 12,
       nonRecoverableOpex: 85_000,
       otherOperatingIncome: 16_800,
+      rentalGrowthRate: 2.0,
     },
     completenessScore: 88,
     notes: 'Hauptmieter Laufzeit bis 2027. Gespräche über Verlängerung laufen.',
@@ -78,6 +79,7 @@ export const mockAssets: Asset[] = [
       maintenanceReservePerSqm: 10,
       nonRecoverableOpex: 42_000,
       otherOperatingIncome: 8_400,
+      rentalGrowthRate: 2.5,
     },
     completenessScore: 95,
     units: [
@@ -121,6 +123,7 @@ export const mockAssets: Asset[] = [
       maintenanceReservePerSqm: 6,
       nonRecoverableOpex: 95_000,
       otherOperatingIncome: 24_000,
+      rentalGrowthRate: 1.5,
     },
     completenessScore: 72,
     units: [

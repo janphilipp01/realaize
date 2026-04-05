@@ -17,6 +17,7 @@ interface AppSettings {
   defaultMaintenancePerSqm: number; // €/m²/yr, default 10
   defaultClosingCostPct: number;  // %, default 6.5
   defaultBrokerFeePct: number;    // %, default 1.5
+  defaultRentalGrowthRate: number; // % p.a., default 2.0
 }
 
 interface AppState {
@@ -126,6 +127,7 @@ const defaultSettings: AppSettings = {
   defaultMaintenancePerSqm: 10,
   defaultClosingCostPct: 6.5,
   defaultBrokerFeePct: 1.5,
+  defaultRentalGrowthRate: 2.0,
 };
 
 export const useStore = create<AppState>()(
