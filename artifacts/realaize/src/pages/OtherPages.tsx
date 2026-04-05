@@ -951,7 +951,7 @@ export function CashFlowPage() {
                           <td key={i} style={{
                             padding: '10px 12px', textAlign: 'right', background: bg,
                             fontFamily: 'ui-monospace, monospace', fontSize: 12, fontWeight: 700,
-                            color: val === 0 ? 'rgba(0,0,0,0.20)' : section.color,
+                            color: val === 0 ? 'rgba(0,0,0,0.20)' : val < 0 ? '#f87171' : section.color,
                             borderLeft: isTotal ? '2px solid rgba(201,169,110,0.20)' : '1px solid rgba(0,0,0,0.05)',
                           }}>
                             {val === 0 ? '—' : fmtMio(val)}
