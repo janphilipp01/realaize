@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, TrendingUp, BarChart3, CreditCard,
   LineChart, FolderOpen, Bot, Settings, ChevronLeft, ChevronRight,
-  AlertTriangle, BookUser, HardHat, ShoppingBag, Newspaper, Radar, CalendarDays
+  AlertTriangle, BookUser, HardHat, ShoppingBag, Newspaper, Radar, CalendarDays, List
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useLanguage } from '../../i18n/LanguageContext';
@@ -69,7 +69,12 @@ export default function Layout({ children }: LayoutProps) {
     { key: 'assets', label: t('nav.assets'), icon: Building2, path: '/assets' },
     { key: 'developments', label: t('nav.developments'), icon: HardHat, path: '/developments' },
     { key: 'debt', label: t('nav.debt'), icon: CreditCard, path: '/debt' },
-    { key: 'sales', label: t('nav.sales'), icon: ShoppingBag, path: '/sales' },
+    {
+      key: 'sales', label: t('nav.sales'), icon: ShoppingBag, path: '/sales',
+      sub: [
+        { key: 'sales-list', label: 'Übersicht', icon: List, path: '/sales' },
+      ],
+    },
     {
       key: 'acquisition', label: t('nav.acquisition'), icon: TrendingUp, path: '/acquisition',
       sub: [

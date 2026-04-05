@@ -353,6 +353,7 @@ export interface DevelopmentProject {
   plannedEndDate: string;
   actualEndDate?: string;
   gewerke: GeverkPosition[];
+  units?: Unit[];
   documents: Document[];
   activityLog: ActivityEntry[];
   advisorMessages: AdvisorMessage[];

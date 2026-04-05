@@ -99,13 +99,12 @@ export default function PortfolioPage() {
       )}
 
       {/* Top KPI Strip — KPI labels always English */}
-      <div className="grid grid-cols-6 gap-4 mb-6">
+      <div className="grid grid-cols-5 gap-4 mb-6">
         <KPICard label="Portfolio Value" value={formatEUR(totalValue, true)} sub={t('portfolio.currentValuation')} status="neutral" />
         <KPICard label="Annual Net Rent" value={formatEUR(totalRent, true)} sub={`${formatEUR(totalRent / 12, true)}/${t('portfolio.month')}`} status="good" />
         <KPICard label="Total Debt" value={formatEUR(totalDebt, true)} sub={`${formatPct((totalDebt / totalValue) * 100, 1)} LTV`} status={totalDebt / totalValue > 0.65 ? 'warning' : 'neutral'} />
         <KPICard label="Occupancy Rate" value={formatPct(avgOccupancy * 100, 1)} sub={`${assets.length} ${t('portfolio.objects')}`} status={avgOccupancy > 0.9 ? 'good' : avgOccupancy > 0.8 ? 'warning' : 'danger'} />
         <KPICard label="Net Initial Yield" value={formatPct(computePortfolioNIY(assets))} sub={t('portfolio.avgPortfolio')} status="neutral" />
-        <KPICard label="Veräußerungsgewinn YTD" value={formatEUR(ytdDisposalGain, true)} sub={`${ytdSales.length} Verkäufe ${new Date().getFullYear()}`} status={ytdDisposalGain > 0 ? 'good' : 'neutral'} trend={ytdDisposalGain > 0 ? 'up' : undefined} />
       </div>
 
       <div className="grid grid-cols-3 gap-6 mb-6">
@@ -275,8 +274,8 @@ export default function PortfolioPage() {
         </GlassPanel>
       </div>
 
-      {/* News & Market Intelligence Widgets */}
-      <div className="grid grid-cols-2 gap-6 mt-6">
+      {/* News, Veräußerungsgewinn YTD & Market Intelligence */}
+      <div className="grid grid-cols-3 gap-6 mt-6">
         {/* Latest News */}
         <GlassPanel style={{ padding: 24 }}>
           <div className="flex items-center justify-between mb-4">
@@ -314,6 +313,44 @@ export default function PortfolioPage() {
             <div style={{ fontSize: 12, color: 'rgba(60,60,67,0.45)' }}>
               {lang === 'de' ? 'Noch kein News-Report verfügbar.' : 'No news report available yet.'}
               <Link to="/news" style={{ color: '#007aff', marginLeft: 6, textDecoration: 'none' }}>{lang === 'de' ? 'Jetzt generieren →' : 'Generate now →'}</Link>
+            </div>
+          )}
+        </GlassPanel>
+
+        {/* Veräußerungsgewinn YTD */}
+        <GlassPanel style={{ padding: 24 }}>
+          <div className="flex items-center gap-2 mb-4">
+            <Activity size={15} color="#1a7f37" />
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              Veräußerungsgewinn YTD
+            </span>
+          </div>
+          <div style={{ fontSize: 36, fontWeight: 700, color: ytdDisposalGain >= 0 ? '#1a7f37' : '#cc1a14', fontFamily: 'ui-monospace, monospace', letterSpacing: '-0.03em', marginBottom: 4 }}>
+            {ytdDisposalGain >= 0 ? '+' : ''}{formatEUR(ytdDisposalGain, true)}
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(60,60,67,0.50)', marginBottom: 20 }}>
+            {ytdSales.length} {ytdSales.length === 1 ? 'Verkauf' : 'Verkäufe'} · {new Date().getFullYear()}
+          </div>
+          {ytdSales.length > 0 ? (
+            <div className="space-y-2">
+              {ytdSales.slice(0, 4).map(s => (
+                <Link key={s.id} to={`/sales/${s.id}`} style={{ textDecoration: 'none' }}>
+                  <div className="flex items-center justify-between p-2.5 rounded-xl" style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                    <div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#1c1c1e' }}>{s.name}</div>
+                      <div style={{ fontSize: 10, color: 'rgba(60,60,67,0.45)' }}>{s.city}</div>
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: (s.disposalGain || 0) >= 0 ? '#1a7f37' : '#cc1a14', fontFamily: 'ui-monospace, monospace' }}>
+                      {(s.disposalGain || 0) >= 0 ? '+' : ''}{formatEUR(s.disposalGain || 0, true)}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontSize: 12, color: 'rgba(60,60,67,0.40)', fontStyle: 'italic' }}>
+              Noch keine Verkäufe in {new Date().getFullYear()} abgeschlossen.
+              <Link to="/sales" style={{ color: '#007aff', marginLeft: 6, textDecoration: 'none' }}>Sales →</Link>
             </div>
           )}
         </GlassPanel>

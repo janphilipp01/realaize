@@ -53,6 +53,9 @@ interface AppState {
   updateGewerk: (devId: string, gwId: string, patch: Partial<GeverkPosition>) => void;
   deleteGewerk: (devId: string, gwId: string) => void;
   addActivityToDevelopment: (devId: string, entry: ActivityEntry) => void;
+  addDevUnit: (devId: string, unit: Unit) => void;
+  updateDevUnit: (devId: string, unitId: string, patch: Partial<Unit>) => void;
+  deleteDevUnit: (devId: string, unitId: string) => void;
   transferDevToBestand: (devId: string) => void;
   transferDevToSale: (devId: string) => void;
 
@@ -245,15 +248,29 @@ export const useStore = create<AppState>()(
       addActivityToDevelopment: (devId, entry) =>
         set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, activityLog: [entry, ...d.activityLog] } : d) })),
 
+      addDevUnit: (devId, unit) =>
+        set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, units: [...(d.units || []), unit] } : d) })),
+
+      updateDevUnit: (devId, unitId, patch) =>
+        set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, units: (d.units || []).map(u => u.id === unitId ? { ...u, ...patch } : u) } : d) })),
+
+      deleteDevUnit: (devId, unitId) =>
+        set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, units: (d.units || []).filter(u => u.id !== unitId) } : d) })),
+
       transferDevToBestand: (devId) => {
         const dev = get().developments.find(d => d.id === devId);
         if (!dev) return;
+        const newAssetId = `asset-${Date.now()}`;
+        const units = (dev.units || []).map(u => ({ ...u, assetId: newAssetId }));
+        const annualRent = units.reduce((s, u) => s + u.monthlyRent * 12, 0);
+        const lettedUnits = units.filter(u => u.leaseType === 'Vermietet');
+        const occupancyRate = units.length > 0 ? lettedUnits.length / units.length : 0;
         const newAsset: Asset = {
-          id: `asset-${Date.now()}`, name: dev.name, address: dev.address, city: dev.city, zip: dev.zip,
+          id: newAssetId, name: dev.name, address: dev.address, city: dev.city, zip: dev.zip,
           usageType: dev.usageType, status: 'Bestand', acquisitionDate: new Date().toISOString().split('T')[0],
           purchasePrice: dev.purchasePrice + dev.totalBudget, currentValue: dev.projectedSalePrice || dev.purchasePrice + dev.totalBudget,
           totalArea: dev.totalArea, lettableArea: dev.totalArea * 0.9,
-          occupancyRate: 0, annualRent: 0,
+          occupancyRate, annualRent,
           operatingCosts: {
             vacancyRatePercent: 5,
             managementCostPercent: 3,
@@ -261,7 +278,7 @@ export const useStore = create<AppState>()(
             nonRecoverableOpex: 0,
             otherOperatingIncome: 0,
           },
-          units: [], debtInstruments: [], covenants: [], cashFlows: [], documents: dev.documents, capexProjects: [],
+          units, debtInstruments: [], covenants: [], cashFlows: [], documents: dev.documents, capexProjects: [],
           completenessScore: 45,
         };
         set(s => ({
