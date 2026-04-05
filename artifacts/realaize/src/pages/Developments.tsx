@@ -613,8 +613,22 @@ export function DevelopmentDetailPage() {
                           <span className={STATUS_COLORS[gw.status]}>{gw.status}</span>
                         )}
                       </td>
-                      <td style={{ padding: '8px 10px', fontSize: 11, color: 'rgba(60,60,67,0.55)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {contractor ? `${contractor.firstName} ${contractor.lastName}` : '—'}
+                      <td style={{ padding: '8px 10px', overflow: 'hidden' }}>
+                        {isEditing ? (
+                          <select className="input-glass" style={{ fontSize: 11, padding: '3px 4px', width: '100%' }}
+                            value={gwEdits.contractorId ?? gw.contractorId ?? ''}
+                            onChange={e => setGwEdits(p => ({ ...p, contractorId: e.target.value || undefined }))}
+                          >
+                            <option value="">— kein</option>
+                            {contacts.map(c => (
+                              <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span style={{ fontSize: 11, color: 'rgba(60,60,67,0.55)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
+                            {contractor ? `${contractor.firstName} ${contractor.lastName}` : '—'}
+                          </span>
+                        )}
                       </td>
                       <td style={{ padding: '10px 12px' }}>
                         <div className="flex items-center gap-1">
