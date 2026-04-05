@@ -880,7 +880,7 @@ export function CashFlowPage() {
             <Bar dataKey="txNeg" stackId="neg" fill="rgba(201,169,110,0.15)" stroke="#c9a96e" strokeWidth={2} legendType="none" />
             <Bar dataKey="debtNeg" stackId="neg" fill="rgba(248,113,113,0.15)" stroke="#f87171" strokeWidth={2} radius={[0, 0, 4, 4]} legendType="none" />
             {/* Cumulative line */}
-            <Line type="monotone" dataKey="cumulativeFreeCF" stroke="#4ade80" strokeWidth={4} dot={false} name="Kum. Free CF" />
+            <Line type="monotone" dataKey="cumulativeFreeCF" stroke="#4ade80" strokeWidth={2} dot={false} name="Kum. Free CF" />
           </ComposedChart>
         </ResponsiveContainer>
         <div className="flex gap-5 mt-3" style={{ paddingLeft: 4 }}>
