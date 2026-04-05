@@ -244,6 +244,20 @@ export default function Layout({ children }: LayoutProps) {
           {collapsed ? <ChevronRight size={13} /> : <><ChevronLeft size={13} /><span style={{ fontSize: 12, fontWeight: 500 }}>{t('nav.collapse')}</span></>}
         </button>
 
+        {/* Today's date */}
+        <div style={{
+          padding: collapsed ? '8px 0' : '7px 14px',
+          fontSize: 11, color: 'rgba(60,60,67,0.5)', fontWeight: 500,
+          textAlign: collapsed ? 'center' : 'left',
+          letterSpacing: '0.01em',
+          borderTop: '1px solid rgba(0,0,0,0.05)',
+        }}>
+          {collapsed
+            ? new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
+            : new Date().toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' })
+          }
+        </div>
+
         {/* User + Language toggle */}
         <div className="flex items-center gap-2 px-3 py-3" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
           <div className="flex items-center justify-center rounded-full flex-shrink-0"

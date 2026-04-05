@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   LineChart, Line, AreaChart, Area, ComposedChart, ReferenceLine, CartesianGrid
@@ -547,6 +547,8 @@ function fmtMio(n: number): string {
 export function CashFlowPage() {
   const { assets, developments, sales, settings } = useStore();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['noi', 'transactions', 'debt']));
+  const [colWidths, setColWidths] = useState<Record<number, number>>({});
+  const resizeRef = useRef<{ colIdx: number; startX: number; startWidth: number } | null>(null);
 
   const toggleSection = (key: string) => {
     setExpandedSections(prev => {
@@ -557,14 +559,30 @@ export function CashFlowPage() {
     });
   };
 
+  const startResize = (colIdx: number, defaultWidth: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startWidth = colWidths[colIdx] ?? defaultWidth;
+    resizeRef.current = { colIdx, startX: e.clientX, startWidth };
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!resizeRef.current) return;
+      const delta = ev.clientX - resizeRef.current.startX;
+      const newWidth = Math.max(50, resizeRef.current.startWidth + delta);
+      setColWidths(prev => ({ ...prev, [resizeRef.current!.colIdx]: newWidth }));
+    };
+    const onMouseUp = () => {
+      resizeRef.current = null;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
   const NUM_YEARS = 10;
 
-  // Base year: earliest acquisition / development start
-  const allStartYears = [
-    ...assets.map(a => new Date(a.acquisitionDate).getFullYear()),
-    ...developments.map(d => new Date(d.startDate).getFullYear()),
-  ];
-  const baseYear = allStartYears.length > 0 ? Math.min(...allStartYears) : new Date().getFullYear();
+  // Base year: always current year
+  const baseYear = new Date().getFullYear();
 
   // Build yearly data
   const yearlyData: CFYearData[] = Array.from({ length: NUM_YEARS }, (_, yearIdx) => {
@@ -881,23 +899,26 @@ export function CashFlowPage() {
 
       {/* 10-Year Table */}
       <GlassPanel style={{ overflow: 'auto', padding: 0 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1200 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1000 }}>
           <thead>
             <tr style={{ borderBottom: '2px solid rgba(201,169,110,0.25)' }}>
-              <th style={{ padding: '14px 16px', textAlign: 'left', position: 'sticky', left: 0, background: '#fff', zIndex: 2, minWidth: 240 }}>
+              <th style={{ padding: '14px 16px', textAlign: 'left', position: 'sticky', left: 0, background: '#fff', zIndex: 2, width: colWidths[0] ?? 240, minWidth: 140 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#111', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Cash Flow Position</div>
                 <div style={{ fontSize: 10, fontWeight: 400, color: 'rgba(0,0,0,0.45)', marginTop: 2 }}>€ in tausend ('000)</div>
+                <div onMouseDown={e => startResize(0, 240, e)} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 5, cursor: 'col-resize', zIndex: 10 }} />
               </th>
               <th style={{ padding: '14px 8px', fontSize: 10, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textAlign: 'center', width: 32 }}>±</th>
               {colHeaders.map((h, i) => (
                 <th key={h} style={{
-                  padding: '14px 12px', fontSize: 11, fontWeight: 700,
+                  padding: '14px 12px', fontSize: 11, fontWeight: 700, position: 'relative',
                   color: i === colHeaders.length - 1 ? '#c9a96e' : '#111',
-                  textAlign: 'right', letterSpacing: '0.03em', minWidth: 90,
+                  textAlign: 'right', letterSpacing: '0.03em',
+                  width: colWidths[i + 2] ?? 100, minWidth: 60,
                   borderLeft: i === colHeaders.length - 1 ? '2px solid rgba(201,169,110,0.20)' : '1px solid rgba(0,0,0,0.05)',
                 }}>
                   {i === colHeaders.length - 1 ? 'Total' : h}
                   {i < colHeaders.length - 1 && <div style={{ fontSize: 9, fontWeight: 400, color: 'rgba(0,0,0,0.35)', marginTop: 1 }}>Jahr {i + 1}</div>}
+                  <div onMouseDown={e => startResize(i + 2, 100, e)} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 5, cursor: 'col-resize', zIndex: 10 }} />
                 </th>
               ))}
             </tr>
@@ -944,7 +965,8 @@ export function CashFlowPage() {
                 {/* Section rows */}
                 {section.rows.map(row => {
                   const isExpanded = expandedSections.has(section.key);
-                  if (!row.isSubtotal && !isExpanded) return null;
+                  if (row.isSubtotal) return null;
+                  if (!isExpanded) return null;
 
                   return (
                     <tr key={row.key} style={rowStyle(row.isSubtotal, false)}>
