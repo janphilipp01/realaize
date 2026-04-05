@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
   Building2, Search, Filter, ChevronRight, ArrowLeft,
   Edit3, Save, X, FileText, AlertTriangle, TrendingUp,
-  BarChart3, Home, Info
+  BarChart3, Home, Info, Trash2
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { useStore } from '../store/useStore';
@@ -146,11 +146,13 @@ export function AssetsPage() {
 // ─── Asset Detail Page ────────────────────────────────────────────────────────
 export function AssetDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { assets, updateAsset, addDocumentToAsset, deleteDocument } = useStore();
+  const navigate = useNavigate();
+  const { assets, updateAsset, deleteAsset, addDocumentToAsset, deleteDocument } = useStore();
   const { t, lang } = useLanguage();
   const dateLocale = lang === 'de' ? 'de-DE' : 'en-GB';
   const asset = assets.find(a => a.id === id);
   const [activeTab, setActiveTab] = useState('overview');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   if (!asset) return (
     <div className="p-8">
@@ -206,9 +208,16 @@ export function AssetDetailPage() {
             </div>
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <button className="btn-glass px-4 py-2 rounded-xl text-sm flex items-center gap-2">
             <FileText size={14} /> Export
+          </button>
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="btn-glass px-3 py-2 rounded-xl text-sm flex items-center gap-2"
+            style={{ color: '#ff3b30', borderColor: 'rgba(255,59,48,0.2)' }}
+          >
+            <Trash2 size={14} />
           </button>
         </div>
       </div>
@@ -504,6 +513,30 @@ export function AssetDetailPage() {
             lang={lang}
           />
         </GlassPanel>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: 'white', borderRadius: 20, padding: 28, maxWidth: 420, width: '90%', boxShadow: '0 24px 60px rgba(0,0,0,0.18)' }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: '#1c1c1e', marginBottom: 12 }}>Asset löschen</div>
+            <div className="p-4 rounded-xl mb-4" style={{ background: 'rgba(255,59,48,0.06)', border: '1px solid rgba(255,59,48,0.15)' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#ff3b30', marginBottom: 6 }}>Wirklich löschen?</div>
+              <div style={{ fontSize: 13, color: 'rgba(60,60,67,0.70)' }}>
+                <strong>{asset.name}</strong> wird unwiderruflich aus dem Bestand entfernt. Alle zugehörigen Daten, Dokumente und Einheiten gehen verloren.
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowDeleteModal(false)} className="btn-glass px-4 py-2 rounded-xl text-sm">Abbrechen</button>
+              <button
+                onClick={() => { deleteAsset(asset.id); navigate('/assets'); }}
+                style={{ background: 'rgba(255,59,48,0.12)', color: '#ff3b30', border: '1px solid rgba(255,59,48,0.2)', borderRadius: 12, padding: '8px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <Trash2 size={14} /> Endgültig löschen
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, ChevronRight, Plus, Download, Upload, FileText,
-  User, Mail, Phone, Building2, Edit3, Save, X, TrendingUp
+  User, Mail, Phone, Building2, Edit3, Save, X, TrendingUp,
+  Trash2, CheckCircle, RotateCcw, TrendingDown
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import {
@@ -27,14 +28,26 @@ const STAGE_COLOR: Record<string, string> = {
 export function SalesPage() {
   const { sales } = useStore();
   const { t, lang } = useLanguage();
-  const totalVolume = sales.reduce((s, sale) => s + sale.askingPrice, 0);
-  const totalProfit = sales.reduce((s, sale) => s + (sale.askingPrice - sale.totalCost), 0);
+  const dateLocale = lang === 'de' ? 'de-DE' : 'en-GB';
+
+  const activeSales = sales.filter(s => s.status !== 'Verkauft');
+  const pastSales = sales.filter(s => s.status === 'Verkauft');
+
+  const totalVolume = activeSales.reduce((s, sale) => s + sale.askingPrice, 0);
+  const totalProfit = activeSales.reduce((s, sale) => s + (sale.askingPrice - sale.totalCost), 0);
+
+  const ytdGain = (() => {
+    const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
+    return pastSales
+      .filter(s => s.soldAt && s.soldAt >= yearStart)
+      .reduce((sum, s) => sum + (s.disposalGain || 0), 0);
+  })();
 
   return (
     <div className="p-8 max-w-[1400px] mx-auto">
       <PageHeader
         title={t('sales.title')}
-        subtitle={`${sales.length} ${t('portfolio.objects')} · ${formatEUR(totalVolume, true)} ${t('sales.totalVolume')}`}
+        subtitle={`${activeSales.length} ${t('portfolio.objects')} · ${formatEUR(totalVolume, true)} ${t('sales.totalVolume')}`}
         badge={lang === 'de' ? 'Verkauf' : 'Sales'}
         actions={
           <button className="btn-glass px-4 py-2 rounded-xl text-sm flex items-center gap-2">
@@ -44,14 +57,14 @@ export function SalesPage() {
       />
 
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <KPICard label="Assets for Sale" value={`${sales.length}`} status="neutral" />
+        <KPICard label="Assets for Sale" value={`${activeSales.length}`} status="neutral" />
         <KPICard label="Asking Volume" value={formatEUR(totalVolume, true)} status="neutral" />
         <KPICard label="Est. Gross Profit" value={formatEUR(totalProfit, true)} status={totalProfit > 0 ? 'good' : 'danger'} />
-        <KPICard label="Active Buyers" value={`${sales.flatMap(s => s.buyers).filter(b => b.stage !== 'Abgesagt').length}`} status="good" />
+        <KPICard label="Veräußerungsgewinn YTD" value={formatEUR(ytdGain, true)} status={ytdGain > 0 ? 'good' : 'neutral'} sub={`${pastSales.filter(s => s.soldAt && s.soldAt >= new Date(new Date().getFullYear(), 0, 1).toISOString()).length} Verkäufe`} />
       </div>
 
-      <div className="grid grid-cols-3 gap-5">
-        {sales.map(sale => {
+      <div className="grid grid-cols-3 gap-5 mb-10">
+        {activeSales.map(sale => {
           const activeBuyers = sale.buyers.filter(b => b.stage !== 'Abgesagt');
           const leadBuyer = sale.buyers.find(b => b.stage === 'Due Diligence' || b.stage === 'LOI' || b.stage === 'Signing');
           const grossProfit = sale.askingPrice - sale.totalCost;
@@ -89,6 +102,48 @@ export function SalesPage() {
           );
         })}
       </div>
+
+      {/* ── Past Sales ── */}
+      {pastSales.length > 0 && (
+        <div className="mb-10">
+          <div className="flex items-center gap-3 mb-4">
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1c1c1e', margin: 0 }}>Vergangene Verkäufe</h2>
+            <span className="badge-neutral">{pastSales.length}</span>
+          </div>
+          <GlassPanel style={{ overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                  {['Objekt', 'Stadt', 'Nutzung', 'Verkaufspreis', 'Gesamtkosten', 'Veräußerungsgewinn', 'Verkauft am'].map(h => (
+                    <th key={h} style={{ padding: '12px 16px', fontSize: 11, fontWeight: 600, color: 'rgba(60,60,67,0.45)', textAlign: 'left', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {pastSales.map(sale => {
+                  const gain = sale.disposalGain || (sale.soldPrice ? sale.soldPrice - sale.totalCost : 0);
+                  return (
+                    <tr key={sale.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                      <td style={{ padding: '14px 16px' }}>
+                        <Link to={`/sales/${sale.id}`} style={{ textDecoration: 'none' }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: '#1c1c1e' }}>{sale.name}</div>
+                          <div style={{ fontSize: 11, color: 'rgba(60,60,67,0.45)' }}>{sale.address}</div>
+                        </Link>
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: 13, color: 'rgba(60,60,67,0.70)' }}>{sale.city}</td>
+                      <td style={{ padding: '14px 16px' }}><span className="badge-neutral">{sale.usageType}</span></td>
+                      <td style={{ padding: '14px 16px', fontFamily: 'ui-monospace, monospace', fontSize: 13, fontWeight: 600, color: '#007aff' }}>{sale.soldPrice ? formatEUR(sale.soldPrice, true) : '—'}</td>
+                      <td style={{ padding: '14px 16px', fontFamily: 'ui-monospace, monospace', fontSize: 13 }}>{formatEUR(sale.totalCost, true)}</td>
+                      <td style={{ padding: '14px 16px', fontFamily: 'ui-monospace, monospace', fontSize: 13, fontWeight: 700, color: gain >= 0 ? '#1a7f37' : '#cc1a14' }}>{gain >= 0 ? '+' : ''}{formatEUR(gain, true)}</td>
+                      <td style={{ padding: '14px 16px', fontSize: 13, color: 'rgba(60,60,67,0.60)' }}>{sale.soldAt ? new Date(sale.soldAt).toLocaleDateString(dateLocale) : '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </GlassPanel>
+        </div>
+      )}
     </div>
   );
 }
@@ -96,13 +151,18 @@ export function SalesPage() {
 // ─── Sale Detail ──────────────────────────────────────────────────────────────
 export function SaleDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { sales, updateSale, addBuyer, updateBuyer } = useStore();
+  const navigate = useNavigate();
+  const { sales, updateSale, addBuyer, updateBuyer, markSaleAsSold, returnSaleToBestand, deleteSale } = useStore();
   const { t, lang } = useLanguage();
   const dateLocale = lang === 'de' ? 'de-DE' : 'en-GB';
   const sale = sales.find(s => s.id === id);
   const [activeTab, setActiveTab] = useState('overview');
   const [showAddBuyer, setShowAddBuyer] = useState(false);
   const [newBuyer, setNewBuyer] = useState<Partial<BuyerLead>>({ stage: 'Kontaktiert' });
+  const [showSoldModal, setShowSoldModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [soldPrice, setSoldPrice] = useState('');
+  const [soldDate, setSoldDate] = useState(new Date().toISOString().split('T')[0]);
 
   if (!sale) return <div className="p-8"><Link to="/sales" style={{ color: '#007aff' }}>{t('common.back')}</Link></div>;
 
@@ -146,13 +206,36 @@ export function SaleDetailPage() {
           <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.04em', color: '#1c1c1e', margin: 0 }}>{sale.name}</h1>
           <div style={{ fontSize: 13, color: 'rgba(60,60,67,0.55)', marginTop: 4 }}>{sale.address}, {sale.city}</div>
           <div className="flex items-center gap-2 mt-2">
-            <span className={sale.status === 'Aktiv' ? 'badge-success' : 'badge-neutral'}>{sale.status}</span>
+            <span className={sale.status === 'Aktiv' ? 'badge-success' : sale.status === 'Verkauft' ? 'badge-accent' : 'badge-neutral'}>{sale.status}</span>
             <span className="badge-neutral">{sale.usageType}</span>
             <span className="badge-neutral">{sale.sourceType}</span>
           </div>
         </div>
-        <div className="flex gap-3">
-          <button className="btn-glass px-4 py-2 rounded-xl text-sm flex items-center gap-2"><Download size={14} /> Investment Memo</button>
+        <div className="flex gap-2">
+          {sale.status !== 'Verkauft' && (
+            <>
+              <button
+                onClick={() => setShowSoldModal(true)}
+                className="btn-accent px-4 py-2 rounded-xl text-sm flex items-center gap-2"
+              >
+                <CheckCircle size={14} /> Verkauft
+              </button>
+              <button
+                onClick={() => { returnSaleToBestand(sale.id); navigate('/assets'); }}
+                className="btn-glass px-4 py-2 rounded-xl text-sm flex items-center gap-2"
+              >
+                <RotateCcw size={14} /> Zurück in Bestand
+              </button>
+            </>
+          )}
+          <button className="btn-glass px-4 py-2 rounded-xl text-sm flex items-center gap-2"><Download size={14} /> Memo</button>
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="btn-glass px-3 py-2 rounded-xl text-sm flex items-center gap-2"
+            style={{ color: '#ff3b30', borderColor: 'rgba(255,59,48,0.2)' }}
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
       </div>
 
@@ -387,6 +470,86 @@ export function SaleDetailPage() {
             </div>
             <div className="p-3 rounded-xl" style={{ background: 'rgba(0,122,255,0.06)', border: '1px solid rgba(0,122,255,0.12)' }}>
               <div style={{ fontSize: 12, color: '#007aff' }}>💡 Kontakt wird automatisch ins Adressbuch (Potentieller Käufer) übernommen.</div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Sold Modal */}
+      {showSoldModal && (
+        <Modal title="Verkauf abschließen" onClose={() => setShowSoldModal(false)}
+          actions={
+            <>
+              <button onClick={() => setShowSoldModal(false)} className="btn-glass px-4 py-2 rounded-xl text-sm">Abbrechen</button>
+              <button
+                onClick={() => {
+                  const price = parseFloat(soldPrice);
+                  if (!price) return;
+                  markSaleAsSold(sale.id, price, soldDate);
+                  setShowSoldModal(false);
+                }}
+                className="btn-accent px-5 py-2 rounded-xl text-sm flex items-center gap-2"
+              >
+                <CheckCircle size={14} /> Als verkauft markieren
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <div className="p-3 rounded-xl" style={{ background: 'rgba(52,199,89,0.07)', border: '1px solid rgba(52,199,89,0.2)' }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#1a7f37' }}>Verkauf von {sale.name} abschließen</div>
+              <div style={{ fontSize: 12, color: 'rgba(60,60,67,0.65)', marginTop: 4 }}>Das Asset wird als "Verkauft" markiert und in die Verkaufshistorie übertragen.</div>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(60,60,67,0.50)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Tatsächlicher Verkaufspreis (EUR) *</label>
+              <input
+                type="number"
+                className="input-glass"
+                placeholder={sale.askingPrice.toString()}
+                value={soldPrice}
+                onChange={e => setSoldPrice(e.target.value)}
+                style={{ width: '100%' }}
+              />
+              {soldPrice && (
+                <div style={{ fontSize: 12, marginTop: 6, color: parseFloat(soldPrice) - sale.totalCost >= 0 ? '#1a7f37' : '#cc1a14' }}>
+                  Veräußerungsgewinn: {parseFloat(soldPrice) - sale.totalCost >= 0 ? '+' : ''}{new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(parseFloat(soldPrice) - sale.totalCost)}
+                </div>
+              )}
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(60,60,67,0.50)', display: 'block', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Closing-Datum</label>
+              <input
+                type="date"
+                className="input-glass"
+                value={soldDate}
+                onChange={e => setSoldDate(e.target.value)}
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <Modal title="Verkaufsobjekt löschen" onClose={() => setShowDeleteModal(false)}
+          actions={
+            <>
+              <button onClick={() => setShowDeleteModal(false)} className="btn-glass px-4 py-2 rounded-xl text-sm">Abbrechen</button>
+              <button
+                onClick={() => { deleteSale(sale.id); navigate('/sales'); }}
+                className="px-5 py-2 rounded-xl text-sm flex items-center gap-2"
+                style={{ background: 'rgba(255,59,48,0.12)', color: '#ff3b30', border: '1px solid rgba(255,59,48,0.2)', cursor: 'pointer' }}
+              >
+                <Trash2 size={14} /> Endgültig löschen
+              </button>
+            </>
+          }
+        >
+          <div className="p-4 rounded-xl" style={{ background: 'rgba(255,59,48,0.06)', border: '1px solid rgba(255,59,48,0.15)' }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#ff3b30', marginBottom: 6 }}>Wirklich löschen?</div>
+            <div style={{ fontSize: 13, color: 'rgba(60,60,67,0.70)' }}>
+              <strong>{sale.name}</strong> wird unwiderruflich gelöscht. Alle Käufer-Daten, Dokumente und Aktivitäten gehen verloren.
             </div>
           </div>
         </Modal>

@@ -120,11 +120,12 @@ export function DevelopmentsPage() {
 export function DevelopmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { developments, updateDevelopment, updateGewerk, addGewerk, deleteGewerk, addActivityToDevelopment, transferDevToBestand, transferDevToSale, contacts, settings } = useStore();
+  const { developments, updateDevelopment, deleteDevelopment, updateGewerk, addGewerk, deleteGewerk, addActivityToDevelopment, transferDevToBestand, transferDevToSale, contacts, settings } = useStore();
   const { t, lang } = useLanguage();
   const dateLocale = lang === 'de' ? 'de-DE' : 'en-GB';
   const dev = developments.find(d => d.id === id);
   const [activeTab, setActiveTab] = useState('overview');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showHoldSellModal, setShowHoldSellModal] = useState<'Hold' | 'Sell' | null>(null);
   const [advisorInput, setAdvisorInput] = useState('');
   const [advisorMessages, setAdvisorMessages] = useState(dev?.advisorMessages || []);
@@ -218,13 +219,20 @@ export function DevelopmentDetailPage() {
             </div>
           </div>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <button className="btn-glass px-4 py-2 rounded-xl text-sm flex items-center gap-2"><Download size={14} /> Export</button>
           <button onClick={() => setShowHoldSellModal('Hold')} className="btn-glass px-4 py-2 rounded-xl text-sm flex items-center gap-2" style={{ color: '#1a7f37', borderColor: 'rgba(52,199,89,0.3)' }}>
             <CheckCircle size={14} /> Hold → Bestand
           </button>
           <button onClick={() => setShowHoldSellModal('Sell')} className="btn-accent px-4 py-2 rounded-xl text-sm flex items-center gap-2">
             <TrendingUp size={14} /> Sell → Sales
+          </button>
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="btn-glass px-3 py-2 rounded-xl text-sm flex items-center gap-2"
+            style={{ color: '#ff3b30', borderColor: 'rgba(255,59,48,0.2)' }}
+          >
+            <Trash2 size={14} />
           </button>
         </div>
       </div>
@@ -700,6 +708,30 @@ export function DevelopmentDetailPage() {
             <div style={{ fontSize: 12, color: 'rgba(60,60,67,0.40)', marginTop: 12 }}>Diese Aktion erstellt einen Audit-Log-Eintrag und kann nicht rückgängig gemacht werden.</div>
           </div>
         </Modal>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: 'white', borderRadius: 20, padding: 28, maxWidth: 420, width: '90%', boxShadow: '0 24px 60px rgba(0,0,0,0.18)' }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: '#1c1c1e', marginBottom: 12 }}>Projekt löschen</div>
+            <div className="p-4 rounded-xl mb-4" style={{ background: 'rgba(255,59,48,0.06)', border: '1px solid rgba(255,59,48,0.15)' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#ff3b30', marginBottom: 6 }}>Wirklich löschen?</div>
+              <div style={{ fontSize: 13, color: 'rgba(60,60,67,0.70)' }}>
+                <strong>{dev.name}</strong> wird unwiderruflich aus dem Development-Portfolio entfernt. Alle Gewerke, Aktivitäten und Dokumente gehen verloren.
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowDeleteModal(false)} className="btn-glass px-4 py-2 rounded-xl text-sm">Abbrechen</button>
+              <button
+                onClick={() => { deleteDevelopment(dev.id); navigate('/developments'); }}
+                style={{ background: 'rgba(255,59,48,0.12)', color: '#ff3b30', border: '1px solid rgba(255,59,48,0.2)', borderRadius: 12, padding: '8px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <Trash2 size={14} /> Endgültig löschen
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

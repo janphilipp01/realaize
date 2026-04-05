@@ -13,7 +13,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../i18n/LanguageContext';
 
 export default function PortfolioPage() {
-  const { assets, deals, auditLog, newsReports, marketLocations } = useStore();
+  const { assets, deals, sales, auditLog, newsReports, marketLocations } = useStore();
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
 
@@ -24,6 +24,11 @@ export default function PortfolioPage() {
   const avgOccupancy = assets.reduce((s, a) => s + a.occupancyRate, 0) / assets.length;
   const breaches = assets.flatMap(a => a.covenants).filter(c => c.status === 'Breach');
   const warnings = assets.flatMap(a => a.covenants).filter(c => c.status === 'Warning');
+
+  // YTD disposal gain
+  const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString();
+  const ytdSales = sales.filter(s => s.status === 'Verkauft' && s.soldAt && s.soldAt >= yearStart);
+  const ytdDisposalGain = ytdSales.reduce((sum, s) => sum + (s.disposalGain || 0), 0);
 
   // Cash flow chart data — from NOI engine
   const now = new Date();
@@ -94,12 +99,13 @@ export default function PortfolioPage() {
       )}
 
       {/* Top KPI Strip — KPI labels always English */}
-      <div className="grid grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-6 gap-4 mb-6">
         <KPICard label="Portfolio Value" value={formatEUR(totalValue, true)} sub={t('portfolio.currentValuation')} status="neutral" />
         <KPICard label="Annual Net Rent" value={formatEUR(totalRent, true)} sub={`${formatEUR(totalRent / 12, true)}/${t('portfolio.month')}`} status="good" />
         <KPICard label="Total Debt" value={formatEUR(totalDebt, true)} sub={`${formatPct((totalDebt / totalValue) * 100, 1)} LTV`} status={totalDebt / totalValue > 0.65 ? 'warning' : 'neutral'} />
         <KPICard label="Occupancy Rate" value={formatPct(avgOccupancy * 100, 1)} sub={`${assets.length} ${t('portfolio.objects')}`} status={avgOccupancy > 0.9 ? 'good' : avgOccupancy > 0.8 ? 'warning' : 'danger'} />
         <KPICard label="Net Initial Yield" value={formatPct(computePortfolioNIY(assets))} sub={t('portfolio.avgPortfolio')} status="neutral" />
+        <KPICard label="Veräußerungsgewinn YTD" value={formatEUR(ytdDisposalGain, true)} sub={`${ytdSales.length} Verkäufe ${new Date().getFullYear()}`} status={ytdDisposalGain > 0 ? 'good' : 'neutral'} trend={ytdDisposalGain > 0 ? 'up' : undefined} />
       </div>
 
       <div className="grid grid-cols-3 gap-6 mb-6">

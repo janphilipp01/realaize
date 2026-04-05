@@ -36,6 +36,7 @@ interface AppState {
 
   // Asset
   updateAsset: (id: string, patch: Partial<Asset>) => void;
+  deleteAsset: (id: string) => void;
 
   // Deal
   addDeal: (deal: AcquisitionDeal) => void;
@@ -47,6 +48,7 @@ interface AppState {
 
   // Development
   updateDevelopment: (id: string, patch: Partial<DevelopmentProject>) => void;
+  deleteDevelopment: (id: string) => void;
   addGewerk: (devId: string, gw: GeverkPosition) => void;
   updateGewerk: (devId: string, gwId: string, patch: Partial<GeverkPosition>) => void;
   deleteGewerk: (devId: string, gwId: string) => void;
@@ -150,6 +152,9 @@ export const useStore = create<AppState>()(
       updateAsset: (id, patch) =>
         set(s => ({ assets: s.assets.map(a => a.id === id ? { ...a, ...patch } : a) })),
 
+      deleteAsset: (id) =>
+        set(s => ({ assets: s.assets.filter(a => a.id !== id) })),
+
       addDeal: (deal) =>
         set(s => ({
           deals: [...s.deals, deal],
@@ -224,6 +229,9 @@ export const useStore = create<AppState>()(
 
       updateDevelopment: (id, patch) =>
         set(s => ({ developments: s.developments.map(d => d.id === id ? { ...d, ...patch } : d) })),
+
+      deleteDevelopment: (id) =>
+        set(s => ({ developments: s.developments.filter(d => d.id !== id) })),
 
       addGewerk: (devId, gw) =>
         set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, gewerke: [...d.gewerke, gw] } : d) })),
