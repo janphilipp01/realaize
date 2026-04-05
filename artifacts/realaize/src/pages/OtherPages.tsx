@@ -703,28 +703,17 @@ export function CashFlowPage() {
   const allData = [...yearlyData, { ...totals, year: 99, absoluteYear: 9999 }];
   const colHeaders = [...yearlyData.map(y => `${y.absoluteYear}`), 'Total'];
 
-  // Stacked waterfall chart data — split pos/neg for correct directional stacking
+  // Area chart data — raw EUR values, YAxis formatter handles display scaling
   let cumulative = 0;
   const chartData = yearlyData.map(y => {
-    const noi = Math.round(y.noi / 1000);
-    const tx = Math.round(y.cashflowFromTransactions / 1000);
-    const debt = Math.round(y.debtCashflow / 1000);
     cumulative += y.freeCashflow;
     return {
       year: `${y.absoluteYear}`,
-      noiPos: noi > 0 ? noi : 0,
-      txPos: tx > 0 ? tx : 0,
-      debtPos: debt > 0 ? debt : 0,
-      noiNeg: noi < 0 ? noi : 0,
-      txNeg: tx < 0 ? tx : 0,
-      debtNeg: debt < 0 ? debt : 0,
-      cumulativeFreeCF: Math.round(cumulative / 1000),
-      // raw values for tooltip formatting
-      _noi: y.noi,
-      _transactions: y.cashflowFromTransactions,
-      _debtCashflow: y.debtCashflow,
-      _freeCashflow: y.freeCashflow,
-      _cumulativeFreeCF: cumulative,
+      noi: y.noi,
+      transactions: y.cashflowFromTransactions,
+      debtCashflow: y.debtCashflow,
+      freeCashflow: y.freeCashflow,
+      cumulativeFreeCF: cumulative,
     };
   });
 
@@ -813,87 +802,77 @@ export function CashFlowPage() {
         <KPICard label="Verkaufserlöse (gesamt)" value={formatEUR(totalSalesProceeds, true)} status="neutral" />
       </div>
 
-      {/* Stacked Waterfall Chart */}
+      {/* Area Chart with Gradient Fills */}
       <GlassPanel style={{ padding: 20, marginBottom: 24 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(60,60,67,0.50)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>
           Cashflow-Segmente pro Jahr (TEUR)
         </div>
-        <ResponsiveContainer width="100%" height={280}>
-          <ComposedChart data={chartData} barGap={2}>
-            <XAxis dataKey="year" tick={{ fontSize: 11, fill: 'rgba(60,60,67,0.55)' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: 'rgba(60,60,67,0.55)' }} axisLine={false} tickLine={false} tickFormatter={v => Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}M` : `${v}k`} />
-            <ReferenceLine y={0} stroke="rgba(0,0,0,0.15)" strokeDasharray="4 4" />
+        <ResponsiveContainer width="100%" height={300}>
+          <ComposedChart data={chartData}>
+            <defs>
+              <linearGradient id="gradNOI" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#007aff" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#007aff" stopOpacity={0.05} />
+              </linearGradient>
+              <linearGradient id="gradTx" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#c9a96e" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#c9a96e" stopOpacity={0.05} />
+              </linearGradient>
+              <linearGradient id="gradDebt" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#f87171" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#f87171" stopOpacity={0.05} />
+              </linearGradient>
+              <linearGradient id="gradFCF" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#4ade80" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="#4ade80" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="year" tick={{ fontSize: 11, fill: 'rgba(60,60,67,0.5)' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: 'rgba(60,60,67,0.4)' }} axisLine={false} tickLine={false} tickFormatter={v => Math.abs(v) >= 1_000_000 ? `${(v / 1_000_000).toFixed(0)}M` : `${(v / 1000).toFixed(0)}k`} />
+            <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
+            <ReferenceLine y={0} stroke="rgba(0,0,0,0.20)" strokeWidth={1} />
             <Tooltip
               content={({ active, payload, label }: any) => {
                 if (!active || !payload?.length) return null;
-                const d = payload[0]?.payload;
-                if (!d) return null;
-                const fmt = (v: number) => {
-                  const abs = Math.abs(v);
-                  const sign = v >= 0 ? '+' : '−';
-                  const num = abs >= 1_000_000
-                    ? `€ ${(abs / 1_000_000).toFixed(2).replace('.', ',')} Mio.`
-                    : `€ ${Math.round(abs).toLocaleString('de-DE')}`;
-                  return { sign, num, color: v >= 0 ? '#16a34a' : '#dc2626' };
-                };
-                const rows: { label: string; value: number }[] = [
-                  { label: 'NOI', value: d._noi },
-                  { label: 'Transactions', value: d._transactions },
-                  { label: 'Debt', value: d._debtCashflow },
-                ];
-                const freeVal = fmt(d._freeCashflow);
-                const cumVal = fmt(d._cumulativeFreeCF);
+                const colors: Record<string, string> = { noi: '#007aff', transactions: '#c9a96e', debtCashflow: '#f87171', freeCashflow: '#4ade80', cumulativeFreeCF: '#ff9500' };
+                const names: Record<string, string> = { noi: 'NOI', transactions: 'Transactions', debtCashflow: 'Debt', freeCashflow: 'Free CF', cumulativeFreeCF: 'Kum. Free CF' };
                 return (
-                  <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.10)', borderRadius: 10, padding: '10px 14px', fontSize: 12, minWidth: 220, boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }}>
-                    <div style={{ fontWeight: 700, color: '#111', marginBottom: 6 }}>{label}</div>
-                    <div style={{ borderBottom: '1px solid rgba(0,0,0,0.08)', marginBottom: 6 }} />
-                    {rows.map(r => {
-                      const f = fmt(r.value);
-                      return (
-                        <div key={r.label} className="flex justify-between gap-6" style={{ marginBottom: 3 }}>
-                          <span style={{ color: 'rgba(0,0,0,0.55)' }}>{r.label}:</span>
-                          <span style={{ fontWeight: 600, color: f.color, fontFamily: 'ui-monospace, monospace' }}>{f.sign} {f.num}</span>
-                        </div>
-                      );
-                    })}
-                    <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', marginTop: 6, paddingTop: 6 }}>
-                      <div className="flex justify-between gap-6" style={{ marginBottom: 3 }}>
-                        <span style={{ color: 'rgba(0,0,0,0.55)', fontWeight: 600 }}>Free CF:</span>
-                        <span style={{ fontWeight: 700, color: freeVal.color, fontFamily: 'ui-monospace, monospace' }}>{freeVal.sign} {freeVal.num}</span>
+                  <div style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 12, padding: '12px 16px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', fontSize: 12, minWidth: 210 }}>
+                    <div style={{ fontWeight: 700, color: '#111', marginBottom: 8 }}>{label}</div>
+                    {payload.map((p: any) => (
+                      <div key={p.dataKey} className="flex justify-between gap-6" style={{ marginBottom: 3 }}>
+                        <span style={{ color: 'rgba(60,60,67,0.6)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 2, background: colors[p.dataKey] || p.color }} />
+                          {names[p.dataKey] || p.name}
+                        </span>
+                        <span style={{ fontWeight: 600, fontFamily: 'ui-monospace, monospace', color: p.value >= 0 ? '#1c1c1e' : '#f87171' }}>
+                          {formatEUR(p.value, true)}
+                        </span>
                       </div>
-                      <div className="flex justify-between gap-6">
-                        <span style={{ color: 'rgba(0,0,0,0.55)', fontWeight: 600 }}>Kum. Free CF:</span>
-                        <span style={{ fontWeight: 700, color: cumVal.color, fontFamily: 'ui-monospace, monospace' }}>{cumVal.sign} {cumVal.num}</span>
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 );
               }}
             />
-            <CartesianGrid vertical={false} stroke="rgba(0,0,0,0.05)" />
-            {/* Positive bars — stack upward */}
-            <Bar dataKey="noiPos" stackId="pos" name="NOI" fill="rgba(0,122,255,0.15)" stroke="#007aff" strokeWidth={2} radius={[4, 4, 0, 0]} />
-            <Bar dataKey="txPos" stackId="pos" name="Transactions" fill="rgba(201,169,110,0.15)" stroke="#c9a96e" strokeWidth={2} />
-            <Bar dataKey="debtPos" stackId="pos" name="Debt" fill="rgba(248,113,113,0.15)" stroke="#f87171" strokeWidth={2} radius={[4, 4, 0, 0]} />
-            {/* Negative bars — stack downward */}
-            <Bar dataKey="noiNeg" stackId="neg" fill="rgba(0,122,255,0.15)" stroke="#007aff" strokeWidth={2} legendType="none" />
-            <Bar dataKey="txNeg" stackId="neg" fill="rgba(201,169,110,0.15)" stroke="#c9a96e" strokeWidth={2} legendType="none" />
-            <Bar dataKey="debtNeg" stackId="neg" fill="rgba(248,113,113,0.15)" stroke="#f87171" strokeWidth={2} radius={[0, 0, 4, 4]} legendType="none" />
-            {/* Cumulative line */}
-            <Line type="monotone" dataKey="cumulativeFreeCF" stroke="#4ade80" strokeWidth={2} dot={false} name="Kum. Free CF" />
+            <Area type="monotone" dataKey="noi" name="NOI" stroke="#007aff" strokeWidth={2} fill="url(#gradNOI)" />
+            <Area type="monotone" dataKey="transactions" name="Transactions" stroke="#c9a96e" strokeWidth={2} fill="url(#gradTx)" />
+            <Area type="monotone" dataKey="debtCashflow" name="Debt" stroke="#f87171" strokeWidth={2} fill="url(#gradDebt)" />
+            <Area type="monotone" dataKey="freeCashflow" name="Free CF" stroke="#4ade80" strokeWidth={3} fill="url(#gradFCF)" />
+            <Line type="monotone" dataKey="cumulativeFreeCF" name="Kum. Free CF" stroke="#ff9500" strokeWidth={3} dot={{ r: 4, fill: '#ff9500', strokeWidth: 2, stroke: '#fff' }} />
           </ComposedChart>
         </ResponsiveContainer>
         <div className="flex gap-5 mt-3" style={{ paddingLeft: 4 }}>
           {[
-            { color: '#007aff', label: 'NOI', line: false },
-            { color: '#c9a96e', label: 'Transactions', line: false },
-            { color: '#f87171', label: 'Debt', line: false },
-            { color: '#4ade80', label: 'Kum. Free CF', line: true },
+            { color: '#007aff', label: 'NOI', dot: false },
+            { color: '#c9a96e', label: 'Transactions', dot: false },
+            { color: '#f87171', label: 'Debt', dot: false },
+            { color: '#4ade80', label: 'Free CF', dot: false },
+            { color: '#ff9500', label: 'Kum. Free CF', dot: true },
           ].map(l => (
             <div key={l.label} className="flex items-center gap-1.5">
-              {l.line
-                ? <div style={{ width: 18, height: 3, borderRadius: 2, background: l.color }} />
-                : <div style={{ width: 12, height: 12, borderRadius: 3, background: l.color === '#007aff' ? 'rgba(0,122,255,0.15)' : l.color === '#c9a96e' ? 'rgba(201,169,110,0.15)' : 'rgba(248,113,113,0.15)', border: `2px solid ${l.color}` }} />}
+              {l.dot
+                ? <div style={{ width: 8, height: 8, borderRadius: '50%', background: l.color, border: '2px solid #fff', boxShadow: `0 0 0 1px ${l.color}` }} />
+                : <div style={{ width: 18, height: 2, borderRadius: 1, background: l.color }} />}
               <span style={{ fontSize: 11, color: 'rgba(60,60,67,0.60)' }}>{l.label}</span>
             </div>
           ))}
