@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  LineChart, Line, AreaChart, Area, ComposedChart
+  LineChart, Line, AreaChart, Area, ComposedChart, ReferenceLine
 } from 'recharts';
 import {
   RefreshCw, Upload, Plus, Filter, Search, AlertTriangle, X,
@@ -703,11 +703,24 @@ export function CashFlowPage() {
   const allData = [...yearlyData, { ...totals, year: 99, absoluteYear: 9999 }];
   const colHeaders = [...yearlyData.map(y => `${y.absoluteYear}`), 'Total'];
 
-  // Cumulative free CF for mini chart
+  // Stacked waterfall chart data (values in thousands for axis display)
   let cumulative = 0;
   const chartData = yearlyData.map(y => {
     cumulative += y.freeCashflow;
-    return { year: `${y.absoluteYear}`, noi: Math.round(y.noi / 1000), fcf: Math.round(y.freeCashflow / 1000), cum: Math.round(cumulative / 1000) };
+    return {
+      year: `${y.absoluteYear}`,
+      noi: Math.round(y.noi / 1000),
+      transactions: Math.round(y.cashflowFromTransactions / 1000),
+      debtCashflow: Math.round(y.debtCashflow / 1000),
+      freeCashflow: Math.round(y.freeCashflow / 1000),
+      cumulativeFreeCF: Math.round(cumulative / 1000),
+      // raw values for tooltip formatting
+      _noi: y.noi,
+      _transactions: y.cashflowFromTransactions,
+      _debtCashflow: y.debtCashflow,
+      _freeCashflow: y.freeCashflow,
+      _cumulativeFreeCF: cumulative,
+    };
   });
 
   // KPI summary
@@ -795,29 +808,81 @@ export function CashFlowPage() {
         <KPICard label="Verkaufserlöse (gesamt)" value={formatEUR(totalSalesProceeds, true)} status="neutral" />
       </div>
 
-      {/* Mini Chart: NOI & Cumulative FCF */}
+      {/* Stacked Waterfall Chart */}
       <GlassPanel style={{ padding: 20, marginBottom: 24 }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(60,60,67,0.50)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>
-          NOI & Kumulierter Free Cashflow (TEUR)
+          Cashflow-Segmente pro Jahr (TEUR)
         </div>
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={chartData} barGap={2}>
-            <XAxis dataKey="year" tick={{ fontSize: 11, fill: 'rgba(245,240,235,0.45)' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: 'rgba(245,240,235,0.45)' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}k`} />
+            <XAxis dataKey="year" tick={{ fontSize: 11, fill: 'rgba(60,60,67,0.55)' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: 'rgba(60,60,67,0.55)' }} axisLine={false} tickLine={false} tickFormatter={v => Math.abs(v) >= 1000 ? `${(v / 1000).toFixed(0)}M` : `${v}k`} />
+            <ReferenceLine y={0} stroke="rgba(0,0,0,0.15)" strokeDasharray="4 4" />
             <Tooltip
-              contentStyle={{ background: 'rgba(255,255,255,0.97)', border: '1px solid rgba(0,0,0,0.10)', borderRadius: 10, fontSize: 12 }}
-              formatter={(v: any, name: string) => [`${v}k €`, name === 'noi' ? 'NOI' : name === 'fcf' ? 'Free CF' : 'Kum. FCF']}
+              content={({ active, payload, label }: any) => {
+                if (!active || !payload?.length) return null;
+                const d = payload[0]?.payload;
+                if (!d) return null;
+                const fmt = (v: number) => {
+                  const abs = Math.abs(v);
+                  const sign = v >= 0 ? '+' : '−';
+                  const num = abs >= 1_000_000
+                    ? `€ ${(abs / 1_000_000).toFixed(2).replace('.', ',')} Mio.`
+                    : `€ ${Math.round(abs).toLocaleString('de-DE')}`;
+                  return { sign, num, color: v >= 0 ? '#16a34a' : '#dc2626' };
+                };
+                const rows: { label: string; value: number }[] = [
+                  { label: 'NOI', value: d._noi },
+                  { label: 'Transactions', value: d._transactions },
+                  { label: 'Debt', value: d._debtCashflow },
+                ];
+                const freeVal = fmt(d._freeCashflow);
+                const cumVal = fmt(d._cumulativeFreeCF);
+                return (
+                  <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.10)', borderRadius: 10, padding: '10px 14px', fontSize: 12, minWidth: 220, boxShadow: '0 4px 16px rgba(0,0,0,0.10)' }}>
+                    <div style={{ fontWeight: 700, color: '#111', marginBottom: 6 }}>{label}</div>
+                    <div style={{ borderBottom: '1px solid rgba(0,0,0,0.08)', marginBottom: 6 }} />
+                    {rows.map(r => {
+                      const f = fmt(r.value);
+                      return (
+                        <div key={r.label} className="flex justify-between gap-6" style={{ marginBottom: 3 }}>
+                          <span style={{ color: 'rgba(0,0,0,0.55)' }}>{r.label}:</span>
+                          <span style={{ fontWeight: 600, color: f.color, fontFamily: 'ui-monospace, monospace' }}>{f.sign} {f.num}</span>
+                        </div>
+                      );
+                    })}
+                    <div style={{ borderTop: '1px solid rgba(0,0,0,0.08)', marginTop: 6, paddingTop: 6 }}>
+                      <div className="flex justify-between gap-6" style={{ marginBottom: 3 }}>
+                        <span style={{ color: 'rgba(0,0,0,0.55)', fontWeight: 600 }}>Free CF:</span>
+                        <span style={{ fontWeight: 700, color: freeVal.color, fontFamily: 'ui-monospace, monospace' }}>{freeVal.sign} {freeVal.num}</span>
+                      </div>
+                      <div className="flex justify-between gap-6">
+                        <span style={{ color: 'rgba(0,0,0,0.55)', fontWeight: 600 }}>Kum. Free CF:</span>
+                        <span style={{ fontWeight: 700, color: cumVal.color, fontFamily: 'ui-monospace, monospace' }}>{cumVal.sign} {cumVal.num}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }}
             />
-            <Bar dataKey="noi" name="noi" fill="#007aff" fillOpacity={0.75} radius={[3, 3, 0, 0]} />
-            <Bar dataKey="fcf" name="fcf" fill="#4ade80" fillOpacity={0.65} radius={[3, 3, 0, 0]} />
-            <Line type="monotone" dataKey="cum" name="cum" stroke="#c9a96e" strokeWidth={2} dot={false} />
+            <Bar dataKey="noi" stackId="cf" fill="#007aff" name="NOI" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="transactions" stackId="cf" fill="#c9a96e" name="Transactions" />
+            <Bar dataKey="debtCashflow" stackId="cf" fill="#f87171" name="Debt" radius={[0, 0, 2, 2]} />
+            <Line type="monotone" dataKey="cumulativeFreeCF" stroke="#4ade80" strokeWidth={4} dot={false} name="Kum. Free CF" />
           </ComposedChart>
         </ResponsiveContainer>
-        <div className="flex gap-5 mt-2" style={{ paddingLeft: 4 }}>
-          {[{ color: '#007aff', label: 'NOI' }, { color: '#4ade80', label: 'Free Cashflow' }, { color: '#c9a96e', label: 'Kum. Free CF' }].map(l => (
+        <div className="flex gap-5 mt-3" style={{ paddingLeft: 4 }}>
+          {[
+            { color: '#007aff', label: 'NOI', line: false },
+            { color: '#c9a96e', label: 'Transactions', line: false },
+            { color: '#f87171', label: 'Debt', line: false },
+            { color: '#4ade80', label: 'Kum. Free CF', line: true },
+          ].map(l => (
             <div key={l.label} className="flex items-center gap-1.5">
-              <div style={{ width: 10, height: 10, borderRadius: 2, background: l.color }} />
-              <span style={{ fontSize: 11, color: 'rgba(60,60,67,0.55)' }}>{l.label}</span>
+              {l.line
+                ? <div style={{ width: 18, height: 3, borderRadius: 2, background: l.color }} />
+                : <div style={{ width: 10, height: 10, borderRadius: 2, background: l.color }} />}
+              <span style={{ fontSize: 11, color: 'rgba(60,60,67,0.60)' }}>{l.label}</span>
             </div>
           ))}
         </div>
