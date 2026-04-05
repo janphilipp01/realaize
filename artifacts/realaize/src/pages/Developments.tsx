@@ -503,12 +503,23 @@ export function DevelopmentDetailPage() {
               <Plus size={12} /> Gewerk hinzufügen
             </button>
           </div>
-          <GlassPanel style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', minWidth: 900, borderCollapse: 'collapse' }}>
+          <GlassPanel style={{ overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+              <colgroup>
+                <col style={{ width: '16%' }} />
+                <col style={{ width: '17%' }} />
+                <col style={{ width: '11%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '10%' }} />
+                <col style={{ width: '6%' }} />
+              </colgroup>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
                   {['Gewerk', 'Beschreibung', 'Underwriting', 'Angebot', 'Vergabe', 'Δ Budget', 'Status', 'Auftragnehmer', ''].map(h => (
-                    <th key={h} style={{ padding: '10px 12px', fontSize: 10, fontWeight: 700, color: 'rgba(60,60,67,0.45)', textAlign: 'left', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{h}</th>
+                    <th key={h} style={{ padding: '10px 10px', fontSize: 10, fontWeight: 700, color: 'rgba(60,60,67,0.45)', textAlign: 'left', letterSpacing: '0.04em', textTransform: 'uppercase', overflow: 'hidden' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -519,51 +530,51 @@ export function DevelopmentDetailPage() {
                   const isEditing = editingGw === gw.id;
                   return (
                     <tr key={gw.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                      <td style={{ padding: '10px 12px', minWidth: 140 }}>
+                      <td style={{ padding: '8px 10px', overflow: 'hidden' }}>
                         {isEditing ? (
-                          <select className="input-glass" style={{ fontSize: 11, padding: '4px 6px' }} value={gwEdits.category || gw.category} onChange={e => setGwEdits(p => ({ ...p, category: e.target.value as GeverkCategory }))}>
+                          <select className="input-glass" style={{ fontSize: 11, padding: '3px 4px', width: '100%' }} value={gwEdits.category || gw.category} onChange={e => setGwEdits(p => ({ ...p, category: e.target.value as GeverkCategory }))}>
                             {GEWERK_CATEGORIES.map(c => <option key={c}>{c}</option>)}
                           </select>
                         ) : (
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#1c1c1e' }}>{gw.category}</span>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: '#1c1c1e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{gw.category}</span>
                         )}
                       </td>
-                      <td style={{ padding: '10px 12px', minWidth: 160 }}>
+                      <td style={{ padding: '8px 10px', overflow: 'hidden' }}>
                         {isEditing ? (
-                          <input className="input-glass" style={{ fontSize: 11, padding: '4px 6px' }} value={gwEdits.description ?? gw.description} onChange={e => setGwEdits(p => ({ ...p, description: e.target.value }))} />
+                          <input className="input-glass" style={{ fontSize: 11, padding: '3px 4px', width: '100%' }} value={gwEdits.description ?? gw.description} onChange={e => setGwEdits(p => ({ ...p, description: e.target.value }))} />
                         ) : (
-                          <span style={{ fontSize: 12, color: 'rgba(60,60,67,0.70)' }}>{gw.description}</span>
+                          <span style={{ fontSize: 11, color: 'rgba(60,60,67,0.70)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{gw.description}</span>
                         )}
                       </td>
                       {['underwritingBudget', 'offerAmount', 'contractAmount'].map(key => (
-                        <td key={key} style={{ padding: '10px 12px' }}>
+                        <td key={key} style={{ padding: '8px 10px', overflow: 'hidden' }}>
                           {isEditing ? (
-                            <input type="number" className="input-glass" style={{ fontSize: 11, padding: '4px 6px', width: 90 }}
+                            <input type="number" className="input-glass" style={{ fontSize: 11, padding: '3px 4px', width: '100%' }}
                               value={(gwEdits as any)[key] ?? (gw as any)[key] ?? ''}
                               onChange={e => setGwEdits(p => ({ ...p, [key]: parseFloat(e.target.value) || 0 }))}
                             />
                           ) : (
-                            <span style={{ fontSize: 12, fontFamily: 'ui-monospace, monospace', color: (gw as any)[key] ? '#1c1c1e' : 'rgba(60,60,67,0.30)' }}>
+                            <span style={{ fontSize: 11, fontFamily: 'ui-monospace, monospace', color: (gw as any)[key] ? '#1c1c1e' : 'rgba(60,60,67,0.30)' }}>
                               {(gw as any)[key] ? formatEUR((gw as any)[key], true) : '—'}
                             </span>
                           )}
                         </td>
                       ))}
-                      <td style={{ padding: '10px 12px' }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, fontFamily: 'ui-monospace, monospace', color: delta > 0 ? '#cc1a14' : delta < 0 ? '#1a7f37' : 'rgba(60,60,67,0.45)' }}>
+                      <td style={{ padding: '8px 10px' }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, fontFamily: 'ui-monospace, monospace', color: delta > 0 ? '#cc1a14' : delta < 0 ? '#1a7f37' : 'rgba(60,60,67,0.45)' }}>
                           {delta !== 0 ? `${delta > 0 ? '+' : ''}${formatEUR(delta, true)}` : '—'}
                         </span>
                       </td>
-                      <td style={{ padding: '10px 12px' }}>
+                      <td style={{ padding: '8px 10px' }}>
                         {isEditing ? (
-                          <select className="input-glass" style={{ fontSize: 11, padding: '4px 6px' }} value={gwEdits.status || gw.status} onChange={e => setGwEdits(p => ({ ...p, status: e.target.value as any }))}>
+                          <select className="input-glass" style={{ fontSize: 11, padding: '3px 4px', width: '100%' }} value={gwEdits.status || gw.status} onChange={e => setGwEdits(p => ({ ...p, status: e.target.value as any }))}>
                             {['Offen', 'Ausgeschrieben', 'Angebot', 'Vergeben', 'Abgeschlossen'].map(s => <option key={s}>{s}</option>)}
                           </select>
                         ) : (
                           <span className={STATUS_COLORS[gw.status]}>{gw.status}</span>
                         )}
                       </td>
-                      <td style={{ padding: '10px 12px', fontSize: 11, color: 'rgba(60,60,67,0.55)' }}>
+                      <td style={{ padding: '8px 10px', fontSize: 11, color: 'rgba(60,60,67,0.55)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {contractor ? `${contractor.firstName} ${contractor.lastName}` : '—'}
                       </td>
                       <td style={{ padding: '10px 12px' }}>
@@ -607,11 +618,11 @@ export function DevelopmentDetailPage() {
               </tbody>
               <tfoot>
                 <tr style={{ borderTop: '2px solid rgba(0,0,0,0.08)', background: 'rgba(0,0,0,0.02)' }}>
-                  <td colSpan={2} style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#1c1c1e' }}>GESAMT</td>
-                  <td style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: '#1c1c1e' }}>{formatEUR(totalBudget, true)}</td>
-                  <td style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: '#1c1c1e' }}>{totalOffer ? formatEUR(totalOffer, true) : '—'}</td>
-                  <td style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: totalContract > totalBudget ? '#cc1a14' : '#1a7f37' }}>{formatEUR(totalContract, true)}</td>
-                  <td style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: (totalContract - totalBudget) > 0 ? '#cc1a14' : '#1a7f37' }}>
+                  <td colSpan={2} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, color: '#1c1c1e' }}>GESAMT</td>
+                  <td style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: '#1c1c1e' }}>{formatEUR(totalBudget, true)}</td>
+                  <td style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: '#1c1c1e' }}>{totalOffer ? formatEUR(totalOffer, true) : '—'}</td>
+                  <td style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: totalContract > totalBudget ? '#cc1a14' : '#1a7f37' }}>{formatEUR(totalContract, true)}</td>
+                  <td style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: (totalContract - totalBudget) > 0 ? '#cc1a14' : '#1a7f37' }}>
                     {totalContract - totalBudget !== 0 ? `${totalContract - totalBudget > 0 ? '+' : ''}${formatEUR(totalContract - totalBudget, true)}` : '—'}
                   </td>
                   <td colSpan={3} />
