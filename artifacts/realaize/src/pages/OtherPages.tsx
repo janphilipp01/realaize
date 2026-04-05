@@ -903,12 +903,11 @@ export function CashFlowPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1000 }}>
           <thead>
             <tr style={{ borderBottom: '2px solid rgba(201,169,110,0.25)' }}>
-              <th style={{ padding: '14px 16px', textAlign: 'left', position: 'sticky', left: 0, background: '#fff', zIndex: 2, width: colWidths[0] ?? 240, minWidth: 140 }}>
+              <th style={{ padding: '14px 16px', textAlign: 'left', position: 'sticky', left: 0, background: '#fff', zIndex: 2, width: colWidths[0] ?? 240, minWidth: 140, borderRight: '1px solid rgba(0,0,0,0.07)' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#111', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Portfolio Cash Flow</div>
                 <div style={{ fontSize: 10, fontWeight: 400, color: 'rgba(0,0,0,0.45)', marginTop: 2 }}>€ in tausend ('000)</div>
                 <div onMouseDown={e => startResize(0, 240, e)} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 5, cursor: 'col-resize', zIndex: 10 }} />
               </th>
-              <th style={{ padding: '14px 8px', fontSize: 10, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textAlign: 'center', width: 32 }}>±</th>
               {colHeaders.map((h, i) => (
                 <th key={h} style={{
                   padding: '14px 12px', fontSize: 11, fontWeight: 700, position: 'relative',
@@ -938,13 +937,12 @@ export function CashFlowPage() {
                   const bg = sectionBg[section.key] ?? 'rgba(0,0,0,0.04)';
                   return (
                     <tr onClick={() => toggleSection(section.key)} style={{ cursor: 'pointer', borderTop: '1px solid rgba(0,0,0,0.07)' }}>
-                      <td style={{ padding: '10px 16px', background: bg, position: 'sticky', left: 0, zIndex: 1 }}>
+                      <td style={{ padding: '10px 16px', background: bg, position: 'sticky', left: 0, zIndex: 1, borderRight: '1px solid rgba(0,0,0,0.07)' }}>
                         <div className="flex items-center gap-2">
                           <ChevronDown size={13} style={{ color: section.color, transform: expandedSections.has(section.key) ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s' }} />
                           <span style={{ fontSize: 11, fontWeight: 700, color: section.color, letterSpacing: '0.07em', textTransform: 'uppercase' }}>{section.label}</span>
                         </div>
                       </td>
-                      <td style={{ background: bg, padding: '10px 8px' }} />
                       {allData.map((y, i) => {
                         const val = subtotalRow ? (y as any)[subtotalRow.key] as number : 0;
                         const isTotal = i === allData.length - 1;
@@ -979,10 +977,10 @@ export function CashFlowPage() {
                         position: 'sticky', left: 0,
                         background: row.isSubtotal ? 'rgba(201,169,110,0.08)' : '#fff',
                         zIndex: 1,
+                        borderRight: '1px solid rgba(0,0,0,0.07)',
                       }}>
                         {row.label}
                       </td>
-                      <td style={{ padding: '9px 8px', textAlign: 'center', fontSize: 11, color: 'rgba(0,0,0,0.35)', fontWeight: 600 }}>{row.sign}</td>
                       {allData.map((y, i) => {
                         const rawVal = (y as any)[row.key] as number;
                         const effectiveVal = row.sign === '-' && rawVal > 0 ? -rawVal : rawVal;
@@ -1014,10 +1012,9 @@ export function CashFlowPage() {
 
             {/* Grand total: Free Cashflow */}
             <tr style={{ ...rowStyle(false, true, totals.freeCashflow), borderTop: '2px solid rgba(10,118,41,0.50)' }}>
-              <td style={{ padding: '16px 16px', fontSize: 14, fontWeight: 800, color: '#4ade80', position: 'sticky', left: 0, background: totals.freeCashflow >= 0 ? 'rgba(74,222,128,0.08)' : 'rgba(248,113,113,0.08)', zIndex: 1 }}>
+              <td style={{ padding: '16px 16px', fontSize: 14, fontWeight: 800, color: '#4ade80', position: 'sticky', left: 0, background: totals.freeCashflow >= 0 ? 'rgba(74,222,128,0.08)' : 'rgba(248,113,113,0.08)', zIndex: 1, borderRight: '1px solid rgba(0,0,0,0.07)' }}>
                 Free Cashflow
               </td>
-              <td style={{ padding: '16px 8px', textAlign: 'center', fontSize: 13, color: 'rgba(0,0,0,0.45)', fontWeight: 700 }}>=</td>
               {allData.map((y, i) => {
                 const val = y.freeCashflow;
                 const isTotal = i === allData.length - 1;

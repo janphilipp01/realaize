@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar
+  ComposedChart, AreaChart, Area, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid, ReferenceLine
 } from 'recharts';
 import {
   Building2, TrendingUp, AlertTriangle, CheckCircle, Clock, ArrowRight,
@@ -13,9 +13,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../i18n/LanguageContext';
 
 export default function PortfolioPage() {
-  const { assets, deals, sales, auditLog, newsReports, marketLocations } = useStore();
+  const { assets, deals, sales, auditLog, newsReports, marketLocations, settings } = useStore();
   const { t, lang } = useLanguage();
   const navigate = useNavigate();
+  const dateLocale = lang === 'de' ? 'de-DE' : 'en-GB';
 
   // Portfolio summary
   const totalValue = assets.reduce((s, a) => s + a.currentValue, 0);
@@ -30,26 +31,61 @@ export default function PortfolioPage() {
   const ytdSales = sales.filter(s => s.status === 'Verkauft' && s.soldAt && s.soldAt >= yearStart);
   const ytdDisposalGain = ytdSales.reduce((sum, s) => sum + (s.disposalGain || 0), 0);
 
-  // Cash flow chart data — from NOI engine
-  const now = new Date();
-  const dateLocale = lang === 'de' ? 'de-DE' : 'en-GB';
-  const assetMonthlyCFs = assets.map(a => computeAssetMonthlyCashFlow(a));
-  const totalMonthlyIncome = assetMonthlyCFs.reduce((s, cf) => s + cf.monthlyIncome, 0);
-  const totalMonthlyExpenses = assetMonthlyCFs.reduce((s, cf) => s + cf.monthlyExpenses, 0);
-
-  const chartData = Array.from({ length: 12 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
-    const isForecast = i > 5;
-    const variance = 1 + (Math.sin(i * 2.3) * 0.04);
-    const inflow = totalMonthlyIncome * variance;
-    const outflow = totalMonthlyExpenses * variance;
-    return {
-      period: d.toLocaleDateString(dateLocale, { month: 'short', year: '2-digit' }),
-      Income: Math.round(inflow / 1000),
-      Expenses: Math.round(outflow / 1000),
-      Net: Math.round((inflow - outflow) / 1000),
-      isForecast,
-    };
+  // 10-year cash flow chart data for dashboard widget
+  const baseYear = new Date().getFullYear();
+  const NUM_YEARS_CF = 10;
+  let cumFCF = 0;
+  const chartData = Array.from({ length: NUM_YEARS_CF }, (_, yearIdx) => {
+    const absoluteYear = baseYear + yearIdx;
+    let grossRentalIncome = 0, operatingCosts = 0, acquisitions = 0, acquisitionCosts = 0, salesProceeds = 0, salesCosts = 0, loanReceived = 0, interestPayments = 0, loanRepayments = 0;
+    for (const asset of assets) {
+      const acqYear = new Date(asset.acquisitionDate).getFullYear();
+      const saleObj = sales.find(s => s.sourceId === asset.id);
+      const saleYear = saleObj
+        ? (saleObj.soldAt ? new Date(saleObj.soldAt).getFullYear() : new Date(saleObj.createdAt).getFullYear() + 1)
+        : acqYear + 10;
+      const isActive = absoluteYear >= acqYear && absoluteYear < saleYear;
+      const yearsHeld = absoluteYear - acqYear;
+      const growthRate = ((asset.operatingCosts as any).rentalGrowthRate ?? 2.0) / 100;
+      const growthFactor = Math.pow(1 + growthRate, Math.max(0, yearsHeld));
+      if (isActive) {
+        const grossRent = asset.annualRent * growthFactor;
+        const noiBreakdown = computeAssetNOI(asset);
+        const opexRatio = asset.annualRent > 0 ? noiBreakdown.totalOperatingExpenses / asset.annualRent : 0;
+        grossRentalIncome += grossRent;
+        operatingCosts += grossRent * opexRatio;
+      }
+      if (absoluteYear === acqYear) {
+        acquisitions += asset.purchasePrice;
+        acquisitionCosts += asset.purchasePrice * (settings.defaultClosingCostPct + settings.defaultBrokerFeePct) / 100;
+      }
+      if (absoluteYear === saleYear && saleYear < baseYear + NUM_YEARS_CF) {
+        const noiBreakdown = computeAssetNOI(asset);
+        const noi0 = noiBreakdown.noi;
+        const niy = asset.currentValue > 0 && noi0 > 0 ? noi0 / asset.currentValue : 0.04;
+        const exitPrice = saleObj
+          ? (saleObj.soldPrice ?? saleObj.askingPrice)
+          : (niy > 0 ? noi0 * Math.pow(1 + growthRate, Math.max(0, yearsHeld)) / niy : asset.currentValue);
+        salesProceeds += exitPrice;
+        salesCosts += exitPrice * 0.02;
+      }
+      for (const debt of asset.debtInstruments) {
+        const drawdownYear = new Date(debt.drawdownDate).getFullYear();
+        const maturityYear = new Date(debt.maturityDate).getFullYear();
+        if (absoluteYear === drawdownYear) loanReceived += debt.amount;
+        if (absoluteYear >= drawdownYear && absoluteYear <= maturityYear && isActive) {
+          const outstanding = debt.amount * Math.pow(1 - debt.amortizationRate / 100, absoluteYear - drawdownYear);
+          interestPayments += outstanding * debt.interestRate / 100;
+          loanRepayments += outstanding * debt.amortizationRate / 100;
+        }
+      }
+    }
+    const noi = grossRentalIncome - operatingCosts;
+    const transactions = -acquisitions - acquisitionCosts + salesProceeds - salesCosts;
+    const debtCashflow = loanReceived - interestPayments - loanRepayments;
+    const freeCashflow = noi + transactions + debtCashflow;
+    cumFCF += freeCashflow;
+    return { year: `${absoluteYear}`, noi, transactions, debtCashflow, freeCashflow, cumulativeFreeCF: cumFCF };
   });
 
   // Asset value by type
@@ -116,45 +152,66 @@ export default function PortfolioPage() {
           onClick={() => navigate('/cashflow')}
         >
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                {t('portfolio.cashflow12m')}
-              </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+              10-Jahres Cash Flow
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <div style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--accent)' }} />
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('portfolio.income')}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div style={{ width: 8, height: 8, borderRadius: 2, background: '#f87171' }} />
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('portfolio.expenses')}</span>
-              </div>
-              <span className="badge-info" style={{ fontSize: 10 }}>{t('portfolio.forecastFrom')}</span>
+            <div className="flex items-center gap-4">
+              {[
+                { color: '#007aff', label: 'NOI' },
+                { color: '#ff9500', label: 'Transactions' },
+                { color: '#f87171', label: 'Debt' },
+                { color: '#c9a96e', label: 'Free CF' },
+                { color: '#0A7629', label: 'Kum. Free CF', dot: true },
+              ].map(l => (
+                <div key={l.label} className="flex items-center gap-1.5">
+                  {l.dot
+                    ? <div style={{ width: 7, height: 7, borderRadius: '50%', background: l.color }} />
+                    : <div style={{ width: 14, height: 2, borderRadius: 1, background: l.color }} />}
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{l.label}</span>
+                </div>
+              ))}
               <ArrowRight size={14} color="#007aff" style={{ marginLeft: 4 }} />
             </div>
           </div>
           <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={chartData}>
+            <ComposedChart data={chartData}>
               <defs>
-                <linearGradient id="gradIn" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#c9a96e" stopOpacity={0.25} />
+                <linearGradient id="dbGradNOI" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#007aff" stopOpacity={0.30} />
+                  <stop offset="100%" stopColor="#007aff" stopOpacity={0.03} />
+                </linearGradient>
+                <linearGradient id="dbGradTx" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ff9500" stopOpacity={0.30} />
+                  <stop offset="100%" stopColor="#ff9500" stopOpacity={0.03} />
+                </linearGradient>
+                <linearGradient id="dbGradDebt" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f87171" stopOpacity={0.30} />
+                  <stop offset="100%" stopColor="#f87171" stopOpacity={0.03} />
+                </linearGradient>
+                <linearGradient id="dbGradFCF" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#c9a96e" stopOpacity={0.20} />
                   <stop offset="100%" stopColor="#c9a96e" stopOpacity={0} />
                 </linearGradient>
-                <linearGradient id="gradOut" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f87171" stopOpacity={0.2} />
-                  <stop offset="100%" stopColor="#f87171" stopOpacity={0} />
-                </linearGradient>
               </defs>
-              <XAxis dataKey="period" tick={{ fontSize: 11, fill: 'rgba(245,240,235,0.4)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'rgba(245,240,235,0.4)' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}k`} />
+              <XAxis dataKey="year" tick={{ fontSize: 10, fill: 'rgba(245,240,235,0.4)' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: 'rgba(245,240,235,0.4)' }} axisLine={false} tickLine={false} tickFormatter={v => Math.abs(v) >= 1_000_000 ? `${(v / 1_000_000).toFixed(0)}M` : `${(v / 1000).toFixed(0)}k`} />
+              <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+              <ReferenceLine y={0} stroke="rgba(255,255,255,0.15)" strokeWidth={1} />
               <Tooltip
-                contentStyle={{ background: 'rgba(255,255,255,0.97)', border: '1px solid rgba(0,0,0,0.10)', borderRadius: 12, fontSize: 12, color: '#1c1c1e', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}
-                formatter={(v: any) => [`${v}k EUR`, '']}
+                contentStyle={{ background: 'rgba(255,255,255,0.97)', border: '1px solid rgba(0,0,0,0.10)', borderRadius: 12, fontSize: 11, color: '#1c1c1e', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}
+                formatter={(v: any, name: string) => {
+                  const labels: Record<string, string> = { noi: 'NOI', transactions: 'Transactions', debtCashflow: 'Debt', freeCashflow: 'Free CF', cumulativeFreeCF: 'Kum. Free CF' };
+                  const inK = Math.round(Math.abs(v) / 1000);
+                  const fmt = inK.toLocaleString('de-DE');
+                  return [v < 0 ? `(${fmt}k)` : `${fmt}k`, labels[name] || name];
+                }}
               />
-              <Area type="monotone" dataKey="Income" stroke="#c9a96e" strokeWidth={2} fill="url(#gradIn)" strokeDasharray="4 4" />
-              <Area type="monotone" dataKey="Expenses" stroke="#f87171" strokeWidth={2} fill="url(#gradOut)" />
-            </AreaChart>
+              <Area type="monotone" dataKey="noi" name="noi" stroke="#007aff" strokeWidth={1} fill="url(#dbGradNOI)" />
+              <Area type="monotone" dataKey="transactions" name="transactions" stroke="#ff9500" strokeWidth={1} fill="url(#dbGradTx)" />
+              <Area type="monotone" dataKey="debtCashflow" name="debtCashflow" stroke="#f87171" strokeWidth={1} fill="url(#dbGradDebt)" />
+              <Area type="monotone" dataKey="freeCashflow" name="freeCashflow" stroke="#c9a96e" strokeWidth={2} fill="url(#dbGradFCF)" />
+              <Line type="monotone" dataKey="cumulativeFreeCF" name="cumulativeFreeCF" stroke="#0A7629" strokeWidth={2} dot={false} />
+            </ComposedChart>
           </ResponsiveContainer>
         </GlassPanel>
 
