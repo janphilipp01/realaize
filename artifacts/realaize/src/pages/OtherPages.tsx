@@ -854,9 +854,9 @@ export function CashFlowPage() {
                 );
               }}
             />
-            <Area type="monotone" dataKey="noi" name="NOI" stroke="#007aff" strokeWidth={2} fill="url(#gradNOI)" />
-            <Area type="monotone" dataKey="transactions" name="Transactions" stroke="#c9a96e" strokeWidth={2} fill="url(#gradTx)" />
-            <Area type="monotone" dataKey="debtCashflow" name="Debt" stroke="#f87171" strokeWidth={2} fill="url(#gradDebt)" />
+            <Area type="monotone" dataKey="noi" name="NOI" stroke="#007aff" strokeWidth={1} fill="url(#gradNOI)" />
+            <Area type="monotone" dataKey="transactions" name="Transactions" stroke="#c9a96e" strokeWidth={1} fill="url(#gradTx)" />
+            <Area type="monotone" dataKey="debtCashflow" name="Debt" stroke="#f87171" strokeWidth={1} fill="url(#gradDebt)" />
             <Area type="monotone" dataKey="freeCashflow" name="Free CF" stroke="#4ade80" strokeWidth={3} fill="url(#gradFCF)" />
             <Line type="monotone" dataKey="cumulativeFreeCF" name="Kum. Free CF" stroke="#ff9500" strokeWidth={3} dot={{ r: 4, fill: '#ff9500', strokeWidth: 2, stroke: '#fff' }} />
           </ComposedChart>
