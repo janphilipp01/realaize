@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, ChevronRight, Plus, Edit3, Save, X, AlertTriangle,
@@ -133,6 +133,43 @@ export function DevelopmentDetailPage() {
   const [advisorMessages, setAdvisorMessages] = useState(dev?.advisorMessages || []);
   const [editingGw, setEditingGw] = useState<string | null>(null);
   const [gwEdits, setGwEdits] = useState<Partial<GeverkPosition>>({});
+  const [colWidths, setColWidths] = useState<number[]>([16, 9, 9, 11, 11, 11, 11, 8, 10]);
+  const budgetTableRef = useRef<HTMLTableElement>(null);
+  const resizingCol = useRef<{ idx: number; startX: number; startW: number; nextStartW: number } | null>(null);
+
+  const handleColResizeMouseDown = (idx: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    const tableEl = budgetTableRef.current;
+    if (!tableEl) return;
+    const tableW = tableEl.getBoundingClientRect().width;
+    resizingCol.current = {
+      idx,
+      startX: e.clientX,
+      startW: colWidths[idx] / 100 * tableW,
+      nextStartW: (colWidths[idx + 1] ?? 0) / 100 * tableW,
+    };
+    const onMove = (ev: MouseEvent) => {
+      if (!resizingCol.current) return;
+      const { idx, startX, startW, nextStartW } = resizingCol.current;
+      const delta = ev.clientX - startX;
+      const newW = Math.max(40, startW + delta);
+      const newNext = Math.max(40, nextStartW - delta);
+      const tW = budgetTableRef.current!.getBoundingClientRect().width;
+      setColWidths(prev => {
+        const next = [...prev];
+        next[idx] = (newW / tW) * 100;
+        if (idx + 1 < next.length) next[idx + 1] = (newNext / tW) * 100;
+        return next;
+      });
+    };
+    const onUp = () => {
+      resizingCol.current = null;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  };
   const [editingGanttGw, setEditingGanttGw] = useState<string | null>(null);
   const [ganttGwEdits, setGanttGwEdits] = useState<{ ganttStart?: string; ganttDurationMonths?: number }>({});
   const [debtForm, setDebtForm] = useState<DevDebtAssumptions>(dev.debtAssumptions || { ltvPct: 60, ltcPct: 70, interestRatePct: 4.5, loanType: 'Bullet', annuityTermYears: 15 });
@@ -504,22 +541,24 @@ export function DevelopmentDetailPage() {
             </button>
           </div>
           <GlassPanel style={{ overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <table ref={budgetTableRef} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
               <colgroup>
-                <col style={{ width: '16%' }} />
-                <col style={{ width: '9%' }} />
-                <col style={{ width: '9%' }} />
-                <col style={{ width: '11%' }} />
-                <col style={{ width: '11%' }} />
-                <col style={{ width: '11%' }} />
-                <col style={{ width: '11%' }} />
-                <col style={{ width: '8%' }} />
-                <col style={{ width: '10%' }} />
+                {colWidths.map((w, i) => <col key={i} style={{ width: `${w}%` }} />)}
               </colgroup>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                  {['Gewerk', 'Beschreibung', 'Underwriting', 'Angebot', 'Vergabe', 'Δ Budget', 'Status', 'Auftragnehmer', ''].map(h => (
-                    <th key={h} style={{ padding: '10px 10px', fontSize: 10, fontWeight: 700, color: 'rgba(60,60,67,0.45)', textAlign: 'left', letterSpacing: '0.04em', textTransform: 'uppercase', overflow: 'hidden' }}>{h}</th>
+                  {['Gewerk', 'Beschreibung', 'Underwriting', 'Angebot', 'Vergabe', 'Δ Budget', 'Status', 'Auftragnehmer', ''].map((h, i) => (
+                    <th key={h} style={{ padding: '10px 10px', fontSize: 10, fontWeight: 700, color: 'rgba(60,60,67,0.45)', textAlign: 'left', letterSpacing: '0.04em', textTransform: 'uppercase', overflow: 'hidden', position: 'relative', userSelect: 'none' }}>
+                      {h}
+                      {i < 8 && (
+                        <div
+                          onMouseDown={(e) => handleColResizeMouseDown(i, e)}
+                          style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 6, cursor: 'col-resize', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}
+                        >
+                          <div style={{ width: 2, height: '50%', background: 'rgba(0,0,0,0.10)', borderRadius: 1 }} />
+                        </div>
+                      )}
+                    </th>
                   ))}
                 </tr>
               </thead>
