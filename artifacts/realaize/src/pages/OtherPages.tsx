@@ -768,7 +768,7 @@ export function CashFlowPage() {
   const sections: { key: string; label: string; color: string; rows: CFRow[] }[] = [
     {
       key: 'noi',
-      label: 'Betrieblicher Cashflow',
+      label: 'Operating Cashflow',
       color: '#007aff',
       rows: [
         { key: 'grossRentalIncome', label: 'Gross Rental Income', sign: '+', isSubtotal: false, isGrandTotal: false, section: 'noi', positiveIsGood: true },
@@ -779,8 +779,8 @@ export function CashFlowPage() {
     },
     {
       key: 'transactions',
-      label: 'Transaktions-Cashflow',
-      color: '#c9a96e',
+      label: 'Transaction Cashflow',
+      color: '#ff9500',
       rows: [
         { key: 'acquisitions', label: 'Ankauf (Kaufpreis)', sign: '-', isSubtotal: false, isGrandTotal: false, section: 'transactions', positiveIsGood: false },
         { key: 'acquisitionCosts', label: 'Erwerbsnebenkosten', sign: '-', isSubtotal: false, isGrandTotal: false, section: 'transactions', positiveIsGood: false },
@@ -791,7 +791,7 @@ export function CashFlowPage() {
     },
     {
       key: 'debt',
-      label: 'Finanzierungs-Cashflow',
+      label: 'Financing Cashflow',
       color: '#f87171',
       rows: [
         { key: 'loanReceived', label: 'Darlehensauszahlung', sign: '+', isSubtotal: false, isGrandTotal: false, section: 'debt', positiveIsGood: true },
@@ -834,16 +834,16 @@ export function CashFlowPage() {
                 <stop offset="100%" stopColor="#007aff" stopOpacity={0.05} />
               </linearGradient>
               <linearGradient id="gradTx" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#c9a96e" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="#c9a96e" stopOpacity={0.05} />
+                <stop offset="0%" stopColor="#ff9500" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#ff9500" stopOpacity={0.05} />
               </linearGradient>
               <linearGradient id="gradDebt" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#f87171" stopOpacity={0.35} />
                 <stop offset="100%" stopColor="#f87171" stopOpacity={0.05} />
               </linearGradient>
               <linearGradient id="gradFCF" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#4ade80" stopOpacity={0.25} />
-                <stop offset="100%" stopColor="#4ade80" stopOpacity={0} />
+                <stop offset="0%" stopColor="#c9a96e" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="#c9a96e" stopOpacity={0} />
               </linearGradient>
             </defs>
             <XAxis dataKey="year" tick={{ fontSize: 11, fill: 'rgba(60,60,67,0.5)' }} axisLine={false} tickLine={false} />
@@ -853,7 +853,7 @@ export function CashFlowPage() {
             <Tooltip
               content={({ active, payload, label }: any) => {
                 if (!active || !payload?.length) return null;
-                const colors: Record<string, string> = { noi: '#007aff', transactions: '#c9a96e', debtCashflow: '#f87171', freeCashflow: '#4ade80', cumulativeFreeCF: '#ff9500' };
+                const colors: Record<string, string> = { noi: '#007aff', transactions: '#ff9500', debtCashflow: '#f87171', freeCashflow: '#c9a96e', cumulativeFreeCF: '#0A7629' };
                 const names: Record<string, string> = { noi: 'NOI', transactions: 'Transactions', debtCashflow: 'Debt', freeCashflow: 'Free CF', cumulativeFreeCF: 'Kum. Free CF' };
                 return (
                   <div style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(12px)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 12, padding: '12px 16px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', fontSize: 12, minWidth: 210 }}>
@@ -874,19 +874,19 @@ export function CashFlowPage() {
               }}
             />
             <Area type="monotone" dataKey="noi" name="NOI" stroke="#007aff" strokeWidth={1} fill="url(#gradNOI)" />
-            <Area type="monotone" dataKey="transactions" name="Transactions" stroke="#c9a96e" strokeWidth={1} fill="url(#gradTx)" />
+            <Area type="monotone" dataKey="transactions" name="Transactions" stroke="#ff9500" strokeWidth={1} fill="url(#gradTx)" />
             <Area type="monotone" dataKey="debtCashflow" name="Debt" stroke="#f87171" strokeWidth={1} fill="url(#gradDebt)" />
-            <Area type="monotone" dataKey="freeCashflow" name="Free CF" stroke="#4ade80" strokeWidth={3} fill="url(#gradFCF)" />
-            <Line type="monotone" dataKey="cumulativeFreeCF" name="Kum. Free CF" stroke="#ff9500" strokeWidth={3} dot={{ r: 4, fill: '#ff9500', strokeWidth: 2, stroke: '#fff' }} />
+            <Area type="monotone" dataKey="freeCashflow" name="Free CF" stroke="#c9a96e" strokeWidth={3} fill="url(#gradFCF)" />
+            <Line type="monotone" dataKey="cumulativeFreeCF" name="Kum. Free CF" stroke="#0A7629" strokeWidth={3} dot={{ r: 4, fill: '#0A7629', strokeWidth: 2, stroke: '#fff' }} />
           </ComposedChart>
         </ResponsiveContainer>
         <div className="flex gap-5 mt-3" style={{ paddingLeft: 4 }}>
           {[
             { color: '#007aff', label: 'NOI', dot: false },
-            { color: '#c9a96e', label: 'Transactions', dot: false },
+            { color: '#ff9500', label: 'Transactions', dot: false },
             { color: '#f87171', label: 'Debt', dot: false },
-            { color: '#4ade80', label: 'Free CF', dot: false },
-            { color: '#ff9500', label: 'Kum. Free CF', dot: true },
+            { color: '#c9a96e', label: 'Free CF', dot: false },
+            { color: '#0A7629', label: 'Kum. Free CF', dot: true },
           ].map(l => (
             <div key={l.label} className="flex items-center gap-1.5">
               {l.dot
@@ -904,7 +904,7 @@ export function CashFlowPage() {
           <thead>
             <tr style={{ borderBottom: '2px solid rgba(201,169,110,0.25)' }}>
               <th style={{ padding: '14px 16px', textAlign: 'left', position: 'sticky', left: 0, background: '#fff', zIndex: 2, width: colWidths[0] ?? 240, minWidth: 140 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#111', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Cash Flow Position</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#111', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Portfolio Cash Flow</div>
                 <div style={{ fontSize: 10, fontWeight: 400, color: 'rgba(0,0,0,0.45)', marginTop: 2 }}>€ in tausend ('000)</div>
                 <div onMouseDown={e => startResize(0, 240, e)} style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 5, cursor: 'col-resize', zIndex: 10 }} />
               </th>
@@ -1013,7 +1013,7 @@ export function CashFlowPage() {
             ))}
 
             {/* Grand total: Free Cashflow */}
-            <tr style={{ ...rowStyle(false, true, totals.freeCashflow), borderTop: '2px solid rgba(201,169,110,0.30)' }}>
+            <tr style={{ ...rowStyle(false, true, totals.freeCashflow), borderTop: '2px solid rgba(10,118,41,0.50)' }}>
               <td style={{ padding: '16px 16px', fontSize: 14, fontWeight: 800, color: '#4ade80', position: 'sticky', left: 0, background: totals.freeCashflow >= 0 ? 'rgba(74,222,128,0.08)' : 'rgba(248,113,113,0.08)', zIndex: 1 }}>
                 Free Cashflow
               </td>
