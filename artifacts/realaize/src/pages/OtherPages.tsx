@@ -905,18 +905,41 @@ export function CashFlowPage() {
           <tbody>
             {sections.map(section => (
               <React.Fragment key={section.key}>
-                {/* Section header */}
-                <tr
-                  onClick={() => toggleSection(section.key)}
-                  style={{ cursor: 'pointer', background: 'rgba(0,0,0,0.03)', borderTop: '1px solid rgba(0,0,0,0.07)' }}
-                >
-                  <td colSpan={colHeaders.length + 2} style={{ padding: '10px 16px' }}>
-                    <div className="flex items-center gap-2">
-                      <ChevronDown size={13} style={{ color: section.color, transform: expandedSections.has(section.key) ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s' }} />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: section.color, letterSpacing: '0.07em', textTransform: 'uppercase' }}>{section.label}</span>
-                    </div>
-                  </td>
-                </tr>
+                {/* Section header with inline totals */}
+                {(() => {
+                  const subtotalRow = section.rows.find(r => r.isSubtotal);
+                  const sectionBg: Record<string, string> = {
+                    noi: 'rgba(0,122,255,0.15)',
+                    transactions: 'rgba(201,169,110,0.15)',
+                    debt: 'rgba(248,113,113,0.15)',
+                  };
+                  const bg = sectionBg[section.key] ?? 'rgba(0,0,0,0.04)';
+                  return (
+                    <tr onClick={() => toggleSection(section.key)} style={{ cursor: 'pointer', borderTop: '1px solid rgba(0,0,0,0.07)' }}>
+                      <td style={{ padding: '10px 16px', background: bg, position: 'sticky', left: 0, zIndex: 1 }}>
+                        <div className="flex items-center gap-2">
+                          <ChevronDown size={13} style={{ color: section.color, transform: expandedSections.has(section.key) ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s' }} />
+                          <span style={{ fontSize: 11, fontWeight: 700, color: section.color, letterSpacing: '0.07em', textTransform: 'uppercase' }}>{section.label}</span>
+                        </div>
+                      </td>
+                      <td style={{ background: bg, padding: '10px 8px' }} />
+                      {allData.map((y, i) => {
+                        const val = subtotalRow ? (y as any)[subtotalRow.key] as number : 0;
+                        const isTotal = i === allData.length - 1;
+                        return (
+                          <td key={i} style={{
+                            padding: '10px 12px', textAlign: 'right', background: bg,
+                            fontFamily: 'ui-monospace, monospace', fontSize: 12, fontWeight: 700,
+                            color: val === 0 ? 'rgba(0,0,0,0.20)' : section.color,
+                            borderLeft: isTotal ? '2px solid rgba(201,169,110,0.20)' : '1px solid rgba(0,0,0,0.05)',
+                          }}>
+                            {val === 0 ? '—' : fmtMio(val)}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })()}
 
                 {/* Section rows */}
                 {section.rows.map(row => {
@@ -968,8 +991,8 @@ export function CashFlowPage() {
 
             {/* Grand total: Free Cashflow */}
             <tr style={{ ...rowStyle(false, true, totals.freeCashflow), borderTop: '2px solid rgba(201,169,110,0.30)' }}>
-              <td style={{ padding: '16px 16px', fontSize: 14, fontWeight: 800, color: '#111', position: 'sticky', left: 0, background: totals.freeCashflow >= 0 ? 'rgba(74,222,128,0.08)' : 'rgba(248,113,113,0.08)', zIndex: 1 }}>
-                == Free Cashflow
+              <td style={{ padding: '16px 16px', fontSize: 14, fontWeight: 800, color: '#4ade80', position: 'sticky', left: 0, background: totals.freeCashflow >= 0 ? 'rgba(74,222,128,0.08)' : 'rgba(248,113,113,0.08)', zIndex: 1 }}>
+                Free Cashflow
               </td>
               <td style={{ padding: '16px 8px', textAlign: 'center', fontSize: 13, color: 'rgba(0,0,0,0.45)', fontWeight: 700 }}>=</td>
               {allData.map((y, i) => {
