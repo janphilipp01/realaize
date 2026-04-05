@@ -540,8 +540,9 @@ function getDebtOutstandingForYear(instrument: DebtInstrument, absoluteYear: num
 
 function fmtMio(n: number): string {
   if (n === 0) return '—';
-  const inK = Math.round(n / 1000);
-  return inK.toLocaleString('de-DE');
+  const inK = Math.round(Math.abs(n) / 1000);
+  const formatted = inK.toLocaleString('de-DE');
+  return n < 0 ? `(${formatted})` : formatted;
 }
 
 export function CashFlowPage() {
@@ -984,13 +985,13 @@ export function CashFlowPage() {
                       <td style={{ padding: '9px 8px', textAlign: 'center', fontSize: 11, color: 'rgba(0,0,0,0.35)', fontWeight: 600 }}>{row.sign}</td>
                       {allData.map((y, i) => {
                         const rawVal = (y as any)[row.key] as number;
-                        const displayVal = row.sign === '-' ? rawVal : rawVal;
+                        const effectiveVal = row.sign === '-' && rawVal > 0 ? -rawVal : rawVal;
                         const isTotal = i === allData.length - 1;
                         const valueColor = rawVal === 0
                           ? 'rgba(0,0,0,0.25)'
                           : row.isSubtotal
                             ? cellColor(rawVal, row.positiveIsGood)
-                            : (rawVal > 0 ? '#111' : '#f87171');
+                            : (row.sign === '-' || rawVal < 0) ? '#f87171' : '#111';
                         return (
                           <td key={i} style={{
                             padding: row.isSubtotal ? '12px 12px' : '9px 12px',
@@ -1001,7 +1002,7 @@ export function CashFlowPage() {
                             color: valueColor,
                             borderLeft: isTotal ? '2px solid rgba(201,169,110,0.20)' : '1px solid rgba(0,0,0,0.05)',
                           }}>
-                            {rawVal === 0 ? '—' : `${(row.sign === '-' && rawVal > 0 ? '(' : '')}${fmtMio(Math.abs(displayVal))}${row.sign === '-' && rawVal > 0 ? ')' : ''}`}
+                            {rawVal === 0 ? '—' : fmtMio(effectiveVal)}
                           </td>
                         );
                       })}
