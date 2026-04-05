@@ -507,14 +507,14 @@ export function DevelopmentDetailPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
               <colgroup>
                 <col style={{ width: '16%' }} />
-                <col style={{ width: '17%' }} />
+                <col style={{ width: '13%' }} />
+                <col style={{ width: '9%' }} />
                 <col style={{ width: '11%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '10%' }} />
-                <col style={{ width: '6%' }} />
+                <col style={{ width: '11%' }} />
+                <col style={{ width: '11%' }} />
+                <col style={{ width: '11%' }} />
+                <col style={{ width: '11%' }} />
+                <col style={{ width: '7%' }} />
               </colgroup>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
