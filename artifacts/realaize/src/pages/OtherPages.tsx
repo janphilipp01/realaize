@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  LineChart, Line, AreaChart, Area, ComposedChart, ReferenceLine
+  LineChart, Line, AreaChart, Area, ComposedChart, ReferenceLine, CartesianGrid
 } from 'recharts';
 import {
   RefreshCw, Upload, Plus, Filter, Search, AlertTriangle, X,
@@ -703,16 +703,21 @@ export function CashFlowPage() {
   const allData = [...yearlyData, { ...totals, year: 99, absoluteYear: 9999 }];
   const colHeaders = [...yearlyData.map(y => `${y.absoluteYear}`), 'Total'];
 
-  // Stacked waterfall chart data (values in thousands for axis display)
+  // Stacked waterfall chart data — split pos/neg for correct directional stacking
   let cumulative = 0;
   const chartData = yearlyData.map(y => {
+    const noi = Math.round(y.noi / 1000);
+    const tx = Math.round(y.cashflowFromTransactions / 1000);
+    const debt = Math.round(y.debtCashflow / 1000);
     cumulative += y.freeCashflow;
     return {
       year: `${y.absoluteYear}`,
-      noi: Math.round(y.noi / 1000),
-      transactions: Math.round(y.cashflowFromTransactions / 1000),
-      debtCashflow: Math.round(y.debtCashflow / 1000),
-      freeCashflow: Math.round(y.freeCashflow / 1000),
+      noiPos: noi > 0 ? noi : 0,
+      txPos: tx > 0 ? tx : 0,
+      debtPos: debt > 0 ? debt : 0,
+      noiNeg: noi < 0 ? noi : 0,
+      txNeg: tx < 0 ? tx : 0,
+      debtNeg: debt < 0 ? debt : 0,
       cumulativeFreeCF: Math.round(cumulative / 1000),
       // raw values for tooltip formatting
       _noi: y.noi,
@@ -865,9 +870,16 @@ export function CashFlowPage() {
                 );
               }}
             />
-            <Bar dataKey="noi" stackId="cf" fill="#007aff" name="NOI" radius={[2, 2, 0, 0]} />
-            <Bar dataKey="transactions" stackId="cf" fill="#c9a96e" name="Transactions" />
-            <Bar dataKey="debtCashflow" stackId="cf" fill="#f87171" name="Debt" radius={[0, 0, 2, 2]} />
+            <CartesianGrid vertical={false} stroke="rgba(0,0,0,0.05)" />
+            {/* Positive bars — stack upward */}
+            <Bar dataKey="noiPos" stackId="pos" name="NOI" fill="rgba(0,122,255,0.15)" stroke="#007aff" strokeWidth={2} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="txPos" stackId="pos" name="Transactions" fill="rgba(201,169,110,0.15)" stroke="#c9a96e" strokeWidth={2} />
+            <Bar dataKey="debtPos" stackId="pos" name="Debt" fill="rgba(248,113,113,0.15)" stroke="#f87171" strokeWidth={2} radius={[4, 4, 0, 0]} />
+            {/* Negative bars — stack downward */}
+            <Bar dataKey="noiNeg" stackId="neg" fill="rgba(0,122,255,0.15)" stroke="#007aff" strokeWidth={2} legendType="none" />
+            <Bar dataKey="txNeg" stackId="neg" fill="rgba(201,169,110,0.15)" stroke="#c9a96e" strokeWidth={2} legendType="none" />
+            <Bar dataKey="debtNeg" stackId="neg" fill="rgba(248,113,113,0.15)" stroke="#f87171" strokeWidth={2} radius={[0, 0, 4, 4]} legendType="none" />
+            {/* Cumulative line */}
             <Line type="monotone" dataKey="cumulativeFreeCF" stroke="#4ade80" strokeWidth={4} dot={false} name="Kum. Free CF" />
           </ComposedChart>
         </ResponsiveContainer>
@@ -881,7 +893,7 @@ export function CashFlowPage() {
             <div key={l.label} className="flex items-center gap-1.5">
               {l.line
                 ? <div style={{ width: 18, height: 3, borderRadius: 2, background: l.color }} />
-                : <div style={{ width: 10, height: 10, borderRadius: 2, background: l.color }} />}
+                : <div style={{ width: 12, height: 12, borderRadius: 3, background: l.color === '#007aff' ? 'rgba(0,122,255,0.15)' : l.color === '#c9a96e' ? 'rgba(201,169,110,0.15)' : 'rgba(248,113,113,0.15)', border: `2px solid ${l.color}` }} />}
               <span style={{ fontSize: 11, color: 'rgba(60,60,67,0.60)' }}>{l.label}</span>
             </div>
           ))}
