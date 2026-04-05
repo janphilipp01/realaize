@@ -513,8 +513,8 @@ export function DevelopmentDetailPage() {
                 <col style={{ width: '11%' }} />
                 <col style={{ width: '11%' }} />
                 <col style={{ width: '11%' }} />
-                <col style={{ width: '11%' }} />
-                <col style={{ width: '7%' }} />
+                <col style={{ width: '8%' }} />
+                <col style={{ width: '10%' }} />
               </colgroup>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
