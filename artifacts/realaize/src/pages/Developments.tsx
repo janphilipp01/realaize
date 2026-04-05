@@ -507,7 +507,7 @@ export function DevelopmentDetailPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                  {['Gewerk', 'Beschreibung', 'Underwriting', 'Angebot', 'Vergabe', 'Ist', 'Δ Budget', 'Status', 'Auftragnehmer', ''].map(h => (
+                  {['Gewerk', 'Beschreibung', 'Underwriting', 'Angebot', 'Vergabe', 'Δ Budget', 'Status', 'Auftragnehmer', ''].map(h => (
                     <th key={h} style={{ padding: '10px 12px', fontSize: 10, fontWeight: 700, color: 'rgba(60,60,67,0.45)', textAlign: 'left', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
@@ -535,7 +535,7 @@ export function DevelopmentDetailPage() {
                           <span style={{ fontSize: 12, color: 'rgba(60,60,67,0.70)' }}>{gw.description}</span>
                         )}
                       </td>
-                      {['underwritingBudget', 'offerAmount', 'contractAmount', 'actualCost'].map(key => (
+                      {['underwritingBudget', 'offerAmount', 'contractAmount'].map(key => (
                         <td key={key} style={{ padding: '10px 12px' }}>
                           {isEditing ? (
                             <input type="number" className="input-glass" style={{ fontSize: 11, padding: '4px 6px', width: 90 }}
@@ -611,7 +611,6 @@ export function DevelopmentDetailPage() {
                   <td style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: '#1c1c1e' }}>{formatEUR(totalBudget, true)}</td>
                   <td style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: '#1c1c1e' }}>{totalOffer ? formatEUR(totalOffer, true) : '—'}</td>
                   <td style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: totalContract > totalBudget ? '#cc1a14' : '#1a7f37' }}>{formatEUR(totalContract, true)}</td>
-                  <td style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, fontFamily: 'ui-monospace, monospace' }}>{formatEUR(totalActual, true)}</td>
                   <td style={{ padding: '10px 12px', fontSize: 12, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: (totalContract - totalBudget) > 0 ? '#cc1a14' : '#1a7f37' }}>
                     {totalContract - totalBudget !== 0 ? `${totalContract - totalBudget > 0 ? '+' : ''}${formatEUR(totalContract - totalBudget, true)}` : '—'}
                   </td>
