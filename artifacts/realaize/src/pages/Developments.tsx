@@ -572,13 +572,13 @@ export function DevelopmentDetailPage() {
                             <>
                               <button
                                 onClick={() => { updateGewerk(dev.id, gw.id, gwEdits); setEditingGw(null); setGwEdits({}); }}
-                                style={{ background: '#007aff', border: 'none', borderRadius: 7, cursor: 'pointer', padding: '5px 10px', color: '#fff', fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}
+                                style={{ background: '#007aff', border: 'none', borderRadius: 6, cursor: 'pointer', padding: '4px 6px', display: 'flex', alignItems: 'center' }}
                               >
-                                <Save size={11} /> Speichern
+                                <Save size={11} color="#fff" />
                               </button>
                               <button
                                 onClick={() => { setEditingGw(null); setGwEdits({}); }}
-                                style={{ background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.10)', borderRadius: 7, cursor: 'pointer', padding: '5px 8px', fontSize: 11, display: 'flex', alignItems: 'center' }}
+                                style={{ background: 'rgba(0,0,0,0.06)', border: '1px solid rgba(0,0,0,0.10)', borderRadius: 6, cursor: 'pointer', padding: '4px 6px', display: 'flex', alignItems: 'center' }}
                               >
                                 <X size={11} color="rgba(60,60,67,0.60)" />
                               </button>
@@ -587,13 +587,13 @@ export function DevelopmentDetailPage() {
                             <>
                               <button
                                 onClick={() => { setEditingGw(gw.id); setGwEdits({}); }}
-                                style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 7, cursor: 'pointer', padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'rgba(60,60,67,0.65)', fontWeight: 500 }}
+                                style={{ background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.08)', borderRadius: 6, cursor: 'pointer', padding: '4px 6px', display: 'flex', alignItems: 'center' }}
                               >
-                                <Edit3 size={11} /> Bearbeiten
+                                <Edit3 size={11} color="rgba(60,60,67,0.55)" />
                               </button>
                               <button
                                 onClick={() => deleteGewerk(dev.id, gw.id)}
-                                style={{ background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.15)', borderRadius: 7, cursor: 'pointer', padding: '5px 6px', display: 'flex', alignItems: 'center' }}
+                                style={{ background: 'rgba(255,59,48,0.08)', border: '1px solid rgba(255,59,48,0.15)', borderRadius: 6, cursor: 'pointer', padding: '4px 6px', display: 'flex', alignItems: 'center' }}
                               >
                                 <Trash2 size={11} color="#cc1a14" />
                               </button>
