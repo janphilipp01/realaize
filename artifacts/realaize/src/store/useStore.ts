@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Asset, AcquisitionDeal, MarketLocation, MarketBenchmark, MarketUpdateEntry, AuditLogEntry, ActivityEntry, DevelopmentProject, SaleObject, Contact, ProjectImage, GeverkPosition, BuyerLead, DailyIntelligenceReport, Document, DealRadarListing, DealRadarSearchCriteria, Appointment } from '../models/types';
-import { mockAssets, mockDeals, mockMarketLocations, mockAuditLog, mockDevelopments, mockSales, mockContacts } from '../data/mockData';
+import { mockAssets, mockDeals, mockMarketLocations, mockAuditLog, mockDevelopments, mockSales, mockContacts, mockNewsReports, mockDealRadarListings, mockAppointments } from '../data/mockData';
 
 interface AppSettings {
   hurrleRate: number; // percent, default 15
@@ -136,12 +136,12 @@ export const useStore = create<AppState>()(
       developments: mockDevelopments,
       sales: mockSales,
       contacts: mockContacts,
-      appointments: [],
+      appointments: mockAppointments,
       images: [],
       marketLocations: mockMarketLocations,
       auditLog: mockAuditLog,
-      newsReports: [],
-      dealRadarListings: [],
+      newsReports: mockNewsReports,
+      dealRadarListings: mockDealRadarListings,
       dealRadarCriteria: {
         cities: ['Berlin', 'München', 'Hamburg', 'Frankfurt am Main', 'Düsseldorf'],
         usageTypes: ['Wohnen', 'Büro', 'Logistik'],
@@ -493,10 +493,10 @@ export const useStore = create<AppState>()(
 
       updateSettings: (patch) => set(s => ({ settings: { ...s.settings, ...patch } })),
 
-      resetToMockData: () => set({ assets: mockAssets, deals: mockDeals, developments: mockDevelopments, sales: mockSales, contacts: mockContacts, images: [], marketLocations: mockMarketLocations, auditLog: mockAuditLog, newsReports: [], dealRadarListings: [], dealRadarCriteria: { cities: ['Berlin', 'München', 'Hamburg', 'Frankfurt am Main', 'Düsseldorf'], usageTypes: ['Wohnen', 'Büro', 'Logistik'], priceMin: 2_000_000, priceMax: 50_000_000, minArea: 500, maxArea: 50_000 }, settings: defaultSettings }),
+      resetToMockData: () => set({ assets: mockAssets, deals: mockDeals, developments: mockDevelopments, sales: mockSales, contacts: mockContacts, appointments: mockAppointments, images: [], marketLocations: mockMarketLocations, auditLog: mockAuditLog, newsReports: mockNewsReports, dealRadarListings: mockDealRadarListings, dealRadarCriteria: { cities: ['Berlin', 'München', 'Hamburg', 'Frankfurt am Main', 'Düsseldorf'], usageTypes: ['Wohnen', 'Büro', 'Logistik'], priceMin: 2_000_000, priceMax: 50_000_000, minArea: 500, maxArea: 50_000 }, settings: defaultSettings }),
     }),
     {
-      name: 'restate-storage-v2',
+      name: 'restate-storage-v3',
       partialize: (s) => ({ assets: s.assets, deals: s.deals, developments: s.developments, sales: s.sales, contacts: s.contacts, appointments: s.appointments, images: s.images, marketLocations: s.marketLocations, auditLog: s.auditLog, newsReports: s.newsReports, dealRadarListings: s.dealRadarListings, dealRadarCriteria: s.dealRadarCriteria, settings: s.settings }),
     }
   )
