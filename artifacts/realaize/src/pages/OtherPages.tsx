@@ -539,11 +539,9 @@ function getDebtOutstandingForYear(instrument: DebtInstrument, absoluteYear: num
 }
 
 function fmtMio(n: number): string {
-  const abs = Math.abs(n);
-  if (abs === 0) return '—';
-  if (abs >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}`;
-  if (abs >= 1_000) return `${(n / 1_000).toFixed(0)}k`;
-  return `${Math.round(n)}`;
+  if (n === 0) return '—';
+  const inK = Math.round(n / 1000);
+  return inK.toLocaleString('de-DE');
 }
 
 export function CashFlowPage() {
@@ -721,9 +719,9 @@ export function CashFlowPage() {
   // Row renderer helper
   const rowStyle = (isSubtotal: boolean, isGrandTotal: boolean, value?: number) => ({
     background: isGrandTotal
-      ? (value !== undefined && value >= 0 ? 'rgba(74,222,128,0.06)' : 'rgba(248,113,113,0.06)')
-      : isSubtotal ? 'rgba(201,169,110,0.06)' : 'transparent',
-    borderTop: isSubtotal || isGrandTotal ? '1px solid rgba(201,169,110,0.20)' : 'none',
+      ? (value !== undefined && value >= 0 ? 'rgba(74,222,128,0.08)' : 'rgba(248,113,113,0.08)')
+      : isSubtotal ? 'rgba(201,169,110,0.08)' : 'transparent',
+    borderTop: isSubtotal || isGrandTotal ? '1px solid rgba(201,169,110,0.25)' : 'none',
   });
 
   const cellColor = (val: number, positive: boolean) => {
@@ -768,7 +766,7 @@ export function CashFlowPage() {
     {
       key: 'debt',
       label: 'Finanzierungs-Cashflow',
-      color: '#a78bfa',
+      color: '#f87171',
       rows: [
         { key: 'loanReceived', label: 'Darlehensauszahlung', sign: '+', isSubtotal: false, isGrandTotal: false, section: 'debt', positiveIsGood: true },
         { key: 'interestPayments', label: 'Zinsen', sign: '-', isSubtotal: false, isGrandTotal: false, section: 'debt', positiveIsGood: false },
@@ -830,19 +828,20 @@ export function CashFlowPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1200 }}>
           <thead>
             <tr style={{ borderBottom: '2px solid rgba(201,169,110,0.25)' }}>
-              <th style={{ padding: '14px 16px', fontSize: 11, fontWeight: 700, color: 'rgba(60,60,67,0.50)', textAlign: 'left', letterSpacing: '0.05em', textTransform: 'uppercase', position: 'sticky', left: 0, background: 'rgba(28,28,30,0.97)', zIndex: 2, minWidth: 240 }}>
-                Cash Flow Position
+              <th style={{ padding: '14px 16px', textAlign: 'left', position: 'sticky', left: 0, background: '#fff', zIndex: 2, minWidth: 240 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#111', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Cash Flow Position</div>
+                <div style={{ fontSize: 10, fontWeight: 400, color: 'rgba(0,0,0,0.45)', marginTop: 2 }}>€ in tausend ('000)</div>
               </th>
-              <th style={{ padding: '14px 8px', fontSize: 10, fontWeight: 600, color: 'rgba(60,60,67,0.40)', textAlign: 'center', width: 32 }}>±</th>
+              <th style={{ padding: '14px 8px', fontSize: 10, fontWeight: 600, color: 'rgba(0,0,0,0.35)', textAlign: 'center', width: 32 }}>±</th>
               {colHeaders.map((h, i) => (
                 <th key={h} style={{
                   padding: '14px 12px', fontSize: 11, fontWeight: 700,
-                  color: i === colHeaders.length - 1 ? '#c9a96e' : 'rgba(245,240,235,0.70)',
+                  color: i === colHeaders.length - 1 ? '#c9a96e' : '#111',
                   textAlign: 'right', letterSpacing: '0.03em', minWidth: 90,
-                  borderLeft: i === colHeaders.length - 1 ? '2px solid rgba(201,169,110,0.20)' : '1px solid rgba(255,255,255,0.04)',
+                  borderLeft: i === colHeaders.length - 1 ? '2px solid rgba(201,169,110,0.20)' : '1px solid rgba(0,0,0,0.05)',
                 }}>
                   {i === colHeaders.length - 1 ? 'Total' : h}
-                  {i < colHeaders.length - 1 && <div style={{ fontSize: 9, fontWeight: 400, color: 'rgba(60,60,67,0.35)', marginTop: 1 }}>Jahr {i + 1}</div>}
+                  {i < colHeaders.length - 1 && <div style={{ fontSize: 9, fontWeight: 400, color: 'rgba(0,0,0,0.35)', marginTop: 1 }}>Jahr {i + 1}</div>}
                 </th>
               ))}
             </tr>
@@ -853,7 +852,7 @@ export function CashFlowPage() {
                 {/* Section header */}
                 <tr
                   onClick={() => toggleSection(section.key)}
-                  style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.025)', borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                  style={{ cursor: 'pointer', background: 'rgba(0,0,0,0.03)', borderTop: '1px solid rgba(0,0,0,0.07)' }}
                 >
                   <td colSpan={colHeaders.length + 2} style={{ padding: '10px 16px' }}>
                     <div className="flex items-center gap-2">
@@ -874,18 +873,23 @@ export function CashFlowPage() {
                         padding: row.isSubtotal ? '12px 16px' : '9px 16px 9px 28px',
                         fontSize: row.isSubtotal ? 13 : 12,
                         fontWeight: row.isSubtotal ? 700 : 400,
-                        color: row.isSubtotal ? 'rgba(245,240,235,0.85)' : 'rgba(245,240,235,0.65)',
+                        color: '#111',
                         position: 'sticky', left: 0,
-                        background: row.isSubtotal ? 'rgba(201,169,110,0.05)' : 'rgba(28,28,30,0.97)',
+                        background: row.isSubtotal ? 'rgba(201,169,110,0.08)' : '#fff',
                         zIndex: 1,
                       }}>
                         {row.label}
                       </td>
-                      <td style={{ padding: '9px 8px', textAlign: 'center', fontSize: 11, color: 'rgba(60,60,67,0.40)', fontWeight: 600 }}>{row.sign}</td>
+                      <td style={{ padding: '9px 8px', textAlign: 'center', fontSize: 11, color: 'rgba(0,0,0,0.35)', fontWeight: 600 }}>{row.sign}</td>
                       {allData.map((y, i) => {
                         const rawVal = (y as any)[row.key] as number;
                         const displayVal = row.sign === '-' ? rawVal : rawVal;
                         const isTotal = i === allData.length - 1;
+                        const valueColor = rawVal === 0
+                          ? 'rgba(0,0,0,0.25)'
+                          : row.isSubtotal
+                            ? cellColor(rawVal, row.positiveIsGood)
+                            : (rawVal > 0 ? '#111' : '#f87171');
                         return (
                           <td key={i} style={{
                             padding: row.isSubtotal ? '12px 12px' : '9px 12px',
@@ -893,8 +897,8 @@ export function CashFlowPage() {
                             fontFamily: 'ui-monospace, monospace',
                             fontSize: row.isSubtotal ? 13 : 12,
                             fontWeight: row.isSubtotal ? 700 : 400,
-                            color: rawVal === 0 ? 'rgba(60,60,67,0.25)' : row.isSubtotal ? cellColor(rawVal, row.positiveIsGood) : 'rgba(245,240,235,0.70)',
-                            borderLeft: isTotal ? '2px solid rgba(201,169,110,0.20)' : '1px solid rgba(255,255,255,0.03)',
+                            color: valueColor,
+                            borderLeft: isTotal ? '2px solid rgba(201,169,110,0.20)' : '1px solid rgba(0,0,0,0.05)',
                           }}>
                             {rawVal === 0 ? '—' : `${(row.sign === '-' && rawVal > 0 ? '(' : '')}${fmtMio(Math.abs(displayVal))}${row.sign === '-' && rawVal > 0 ? ')' : ''}`}
                           </td>
@@ -908,10 +912,10 @@ export function CashFlowPage() {
 
             {/* Grand total: Free Cashflow */}
             <tr style={{ ...rowStyle(false, true, totals.freeCashflow), borderTop: '2px solid rgba(201,169,110,0.30)' }}>
-              <td style={{ padding: '16px 16px', fontSize: 14, fontWeight: 800, color: 'rgba(245,240,235,0.95)', position: 'sticky', left: 0, background: totals.freeCashflow >= 0 ? 'rgba(74,222,128,0.04)' : 'rgba(248,113,113,0.04)', zIndex: 1 }}>
+              <td style={{ padding: '16px 16px', fontSize: 14, fontWeight: 800, color: '#111', position: 'sticky', left: 0, background: totals.freeCashflow >= 0 ? 'rgba(74,222,128,0.08)' : 'rgba(248,113,113,0.08)', zIndex: 1 }}>
                 == Free Cashflow
               </td>
-              <td style={{ padding: '16px 8px', textAlign: 'center', fontSize: 13, color: 'rgba(201,169,110,0.70)', fontWeight: 700 }}>=</td>
+              <td style={{ padding: '16px 8px', textAlign: 'center', fontSize: 13, color: 'rgba(0,0,0,0.45)', fontWeight: 700 }}>=</td>
               {allData.map((y, i) => {
                 const val = y.freeCashflow;
                 const isTotal = i === allData.length - 1;
@@ -919,8 +923,8 @@ export function CashFlowPage() {
                   <td key={i} style={{
                     padding: '16px 12px', textAlign: 'right',
                     fontFamily: 'ui-monospace, monospace', fontSize: 14, fontWeight: 800,
-                    color: val === 0 ? 'rgba(60,60,67,0.30)' : val > 0 ? '#4ade80' : '#f87171',
-                    borderLeft: isTotal ? '2px solid rgba(201,169,110,0.20)' : '1px solid rgba(255,255,255,0.04)',
+                    color: val === 0 ? 'rgba(0,0,0,0.25)' : val > 0 ? '#4ade80' : '#f87171',
+                    borderLeft: isTotal ? '2px solid rgba(201,169,110,0.20)' : '1px solid rgba(0,0,0,0.05)',
                   }}>
                     {val === 0 ? '—' : fmtMio(val)}
                   </td>
@@ -930,8 +934,8 @@ export function CashFlowPage() {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={colHeaders.length + 2} style={{ padding: '10px 16px', fontSize: 10, color: 'rgba(60,60,67,0.35)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-                Angaben in Mio. EUR (wenn ≥ 1 Mio.), sonst TEUR. Mietindexierung gemäß individualem Wachstumssatz pro Objekt. Verkäufe basierend auf NOI-Exit-Yield oder Angebotspreisen. Alle Werte sind Planwerte.
+              <td colSpan={colHeaders.length + 2} style={{ padding: '10px 16px', fontSize: 10, color: 'rgba(0,0,0,0.35)', borderTop: '1px solid rgba(0,0,0,0.06)' }}>
+                Angaben in EUR Tausend ('000). Mietindexierung gemäß individualem Wachstumssatz pro Objekt. Verkäufe basierend auf NOI-Exit-Yield oder Angebotspreisen. Alle Werte sind Planwerte.
               </td>
             </tr>
           </tfoot>
