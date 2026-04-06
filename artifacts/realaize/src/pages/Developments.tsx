@@ -172,8 +172,8 @@ export function DevelopmentDetailPage() {
   };
   const [editingGanttGw, setEditingGanttGw] = useState<string | null>(null);
   const [ganttGwEdits, setGanttGwEdits] = useState<{ ganttStart?: string; ganttDurationMonths?: number }>({});
-  const [debtForm, setDebtForm] = useState<DevDebtAssumptions>(dev.debtAssumptions || { ltvPct: 60, ltcPct: 70, interestRatePct: 4.5, loanType: 'Bullet', annuityTermYears: 15 });
-  const [valuationForm, setValuationForm] = useState<DevValuationAssumptions>(dev.valuationAssumptions || { opexPct: 15, exitYieldPct: 5.0, purchasingCostsPct: 10 });
+  const [debtForm, setDebtForm] = useState<DevDebtAssumptions>(dev?.debtAssumptions || { ltvPct: 60, ltcPct: 70, interestRatePct: 4.5, loanType: 'Bullet', annuityTermYears: 15 });
+  const [valuationForm, setValuationForm] = useState<DevValuationAssumptions>(dev?.valuationAssumptions || { opexPct: 15, exitYieldPct: 5.0, purchasingCostsPct: 10 });
 
   if (!dev) return <div className="p-8"><Link to="/developments" style={{ color: '#007aff' }}>{t('common.back')}</Link></div>;
 

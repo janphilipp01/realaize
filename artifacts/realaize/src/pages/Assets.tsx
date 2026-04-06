@@ -153,6 +153,8 @@ export function AssetDetailPage() {
   const asset = assets.find(a => a.id === id);
   const [activeTab, setActiveTab] = useState('overview');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editingOpCosts, setEditingOpCosts] = useState(false);
+  const [opCostEdits, setOpCostEdits] = useState(asset?.operatingCosts ?? {});
 
   if (!asset) return (
     <div className="p-8">
@@ -166,8 +168,6 @@ export function AssetDetailPage() {
   const noiBreakdown = computeAssetNOI(asset);
   const unrealisedGain = asset.currentValue - asset.purchasePrice;
   const unrealisedGainPct = asset.purchasePrice > 0 ? (unrealisedGain / asset.purchasePrice) * 100 : 0;
-  const [editingOpCosts, setEditingOpCosts] = useState(false);
-  const [opCostEdits, setOpCostEdits] = useState(asset.operatingCosts);
 
   // CF chart
   const now = new Date();
