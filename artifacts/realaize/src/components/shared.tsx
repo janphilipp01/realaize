@@ -64,8 +64,9 @@ interface KPICardProps {
   status?: 'good' | 'warning' | 'danger' | 'neutral';
   onInfo?: () => void;
   compact?: boolean;
+  onClick?: () => void;
 }
-export function KPICard({ label, value, sub, trend, trendValue, status = 'neutral', onInfo, compact }: KPICardProps) {
+export function KPICard({ label, value, sub, trend, trendValue, status = 'neutral', onInfo, compact, onClick }: KPICardProps) {
   const statusColors = {
     good: '#1a7f37',
     warning: '#b25000',
@@ -76,7 +77,11 @@ export function KPICard({ label, value, sub, trend, trendValue, status = 'neutra
   const trendColor = trend === 'up' ? '#1a7f37' : trend === 'down' ? '#cc1a14' : 'rgba(60,60,67,0.45)';
 
   return (
-    <div className="kpi-card relative" style={compact ? { padding: 14 } : {}}>
+    <div
+      className="kpi-card relative"
+      style={{ ...(compact ? { padding: 14 } : {}), ...(onClick ? { cursor: 'pointer' } : {}) }}
+      onClick={onClick}
+    >
       {onInfo && (
         <button
           onClick={(e) => { e.stopPropagation(); onInfo(); }}

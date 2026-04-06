@@ -136,11 +136,11 @@ export default function PortfolioPage() {
 
       {/* Top KPI Strip — KPI labels always English */}
       <div className="grid grid-cols-5 gap-4 mb-6">
-        <KPICard label="Portfolio Value" value={formatEUR(totalValue, true)} sub={t('portfolio.currentValuation')} status="neutral" />
-        <KPICard label="Annual Net Rent" value={formatEUR(totalRent, true)} sub={`${formatEUR(totalRent / 12, true)}/${t('portfolio.month')}`} status="good" />
-        <KPICard label="Total Debt" value={formatEUR(totalDebt, true)} sub={`${formatPct((totalDebt / totalValue) * 100, 1)} LTV`} status={totalDebt / totalValue > 0.65 ? 'warning' : 'neutral'} />
-        <KPICard label="Occupancy Rate" value={formatPct(avgOccupancy * 100, 1)} sub={`${assets.length} ${t('portfolio.objects')}`} status={avgOccupancy > 0.9 ? 'good' : avgOccupancy > 0.8 ? 'warning' : 'danger'} />
-        <KPICard label="Net Initial Yield" value={formatPct(computePortfolioNIY(assets))} sub={t('portfolio.avgPortfolio')} status="neutral" />
+        <KPICard label="Portfolio Value" value={formatEUR(totalValue, true)} sub={t('portfolio.currentValuation')} status="neutral" onClick={() => navigate('/assets')} />
+        <KPICard label="Annual Net Rent" value={formatEUR(totalRent, true)} sub={`${formatEUR(totalRent / 12, true)}/${t('portfolio.month')}`} status="good" onClick={() => navigate('/assets')} />
+        <KPICard label="Total Debt" value={formatEUR(totalDebt, true)} sub={`${formatPct((totalDebt / totalValue) * 100, 1)} LTV`} status={totalDebt / totalValue > 0.65 ? 'warning' : 'neutral'} onClick={() => navigate('/assets')} />
+        <KPICard label="Occupancy Rate" value={formatPct(avgOccupancy * 100, 1)} sub={`${assets.length} ${t('portfolio.objects')}`} status={avgOccupancy > 0.9 ? 'good' : avgOccupancy > 0.8 ? 'warning' : 'danger'} onClick={() => navigate('/assets')} />
+        <KPICard label="Net Initial Yield" value={formatPct(computePortfolioNIY(assets))} sub={t('portfolio.avgPortfolio')} status="neutral" onClick={() => navigate('/assets')} />
       </div>
 
       <div className="grid grid-cols-3 gap-6 mb-6">
@@ -216,7 +216,7 @@ export default function PortfolioPage() {
         </GlassPanel>
 
         {/* Asset Allocation */}
-        <GlassPanel style={{ padding: 24 }}>
+        <GlassPanel style={{ padding: 24, cursor: 'pointer' }} hover onClick={() => navigate('/assets')}>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 16 }}>
             {t('portfolio.assetAllocation')}
           </div>
@@ -247,18 +247,18 @@ export default function PortfolioPage() {
 
       <div className="grid grid-cols-3 gap-6">
         {/* Assets Summary */}
-        <GlassPanel style={{ padding: 24 }}>
+        <GlassPanel style={{ padding: 24, cursor: 'pointer' }} hover onClick={() => navigate('/assets')}>
           <div className="flex items-center justify-between mb-4">
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               {t('portfolio.inventory')}
             </div>
-            <Link to="/assets" style={{ color: '#007aff', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
+            <Link to="/assets" onClick={(e) => e.stopPropagation()} style={{ color: '#007aff', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
               {t('portfolio.all')} <ArrowRight size={12} />
             </Link>
           </div>
           <div className="space-y-3">
             {assets.map(asset => (
-              <Link key={asset.id} to={`/assets/${asset.id}`} style={{ textDecoration: 'none' }}>
+              <Link key={asset.id} to={`/assets/${asset.id}`} onClick={(e) => e.stopPropagation()} style={{ textDecoration: 'none' }}>
                 <div className="flex items-center justify-between p-3 rounded-xl glass-hover"
                   style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div>
