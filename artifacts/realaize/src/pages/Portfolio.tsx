@@ -138,7 +138,7 @@ export default function PortfolioPage() {
       <div className="grid grid-cols-5 gap-4 mb-6">
         <KPICard label="Portfolio Value" value={formatEUR(totalValue, true)} sub={t('portfolio.currentValuation')} status="neutral" onClick={() => navigate('/assets')} />
         <KPICard label="Annual Net Rent" value={formatEUR(totalRent, true)} sub={`${formatEUR(totalRent / 12, true)}/${t('portfolio.month')}`} status="good" onClick={() => navigate('/assets')} />
-        <KPICard label="Total Debt" value={formatEUR(totalDebt, true)} sub={`${formatPct((totalDebt / totalValue) * 100, 1)} LTV`} status={totalDebt / totalValue > 0.65 ? 'warning' : 'neutral'} onClick={() => navigate('/assets')} />
+        <KPICard label="Total Debt" value={formatEUR(totalDebt, true)} sub={`${formatPct((totalDebt / totalValue) * 100, 1)} LTV`} status={totalDebt / totalValue > 0.65 ? 'warning' : 'neutral'} onClick={() => navigate('/debt')} />
         <KPICard label="Occupancy Rate" value={formatPct(avgOccupancy * 100, 1)} sub={`${assets.length} ${t('portfolio.objects')}`} status={avgOccupancy > 0.9 ? 'good' : avgOccupancy > 0.8 ? 'warning' : 'danger'} onClick={() => navigate('/assets')} />
         <KPICard label="Net Initial Yield" value={formatPct(computePortfolioNIY(assets))} sub={t('portfolio.avgPortfolio')} status="neutral" onClick={() => navigate('/assets')} />
       </div>
