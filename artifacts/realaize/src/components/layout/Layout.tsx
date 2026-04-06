@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import logoImg from '@assets/realaize_logo_black_1775002783753.PNG';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, TrendingUp, BarChart3, CreditCard,
   LineChart, FolderOpen, Bot, Settings, ChevronLeft, ChevronRight,
-  AlertTriangle, BookUser, HardHat, ShoppingBag, Newspaper, Radar, CalendarDays
+  AlertTriangle, BookUser, HardHat, ShoppingBag, Newspaper, Radar, CalendarDays,
+  GripVertical, Pencil, Check
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useLanguage } from '../../i18n/LanguageContext';
@@ -46,10 +47,20 @@ interface NavItem {
 
 interface LayoutProps { children: React.ReactNode; }
 
+const DEFAULT_NAV_ORDER = ['portfolio', 'assets', 'developments', 'debt', 'sales', 'acquisition', 'markt', 'documents', 'ai', 'news', 'settings'];
+
 export default function Layout({ children }: LayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [showAddressbook, setShowAddressbook] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [navEditMode, setNavEditMode] = useState(false);
+  const [navOrder, setNavOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('realaize_navOrder');
+      return saved ? JSON.parse(saved) : DEFAULT_NAV_ORDER;
+    } catch { return DEFAULT_NAV_ORDER; }
+  });
+  const dragKey = useRef<string | null>(null);
   const location = useLocation();
   const { assets, contacts, appointments } = useStore();
   const { lang, toggleLang, t } = useLanguage();
@@ -82,6 +93,27 @@ export default function Layout({ children }: LayoutProps) {
     { key: 'news', label: t('news.nav'), icon: Newspaper, path: '/news' },
     { key: 'settings', label: t('nav.settings'), icon: Settings, path: '/settings' },
   ];
+
+  const sortedNavItems = [...NAV_ITEMS].sort((a, b) => {
+    const ia = navOrder.indexOf(a.key);
+    const ib = navOrder.indexOf(b.key);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
+
+  const handleNavDragStart = (key: string) => { dragKey.current = key; };
+  const handleNavDragOver = (e: React.DragEvent, overKey: string) => {
+    e.preventDefault();
+    if (!dragKey.current || dragKey.current === overKey) return;
+    const newOrder = [...navOrder];
+    const fromIdx = newOrder.indexOf(dragKey.current);
+    const toIdx = newOrder.indexOf(overKey);
+    if (fromIdx === -1 || toIdx === -1) return;
+    newOrder.splice(fromIdx, 1);
+    newOrder.splice(toIdx, 0, dragKey.current);
+    setNavOrder(newOrder);
+    localStorage.setItem('realaize_navOrder', JSON.stringify(newOrder));
+  };
+  const handleNavDragEnd = () => { dragKey.current = null; };
 
   const breachCount = assets.flatMap(a => a.covenants).filter(c => c.status === 'Breach').length;
   const warningCount = assets.flatMap(a => a.covenants).filter(c => c.status === 'Warning').length;
@@ -136,7 +168,7 @@ export default function Layout({ children }: LayoutProps) {
               >
                 <CalendarDays size={14} color="rgba(60,60,67,0.65)" />
                 {appointments.length > 0 && (
-                  <span style={{ position: 'absolute', top: -3, right: -3, background: '#34c759', color: '#fff', fontSize: 8, fontWeight: 700, borderRadius: 5, padding: '1px 4px', lineHeight: 1.4 }}>
+                  <span style={{ position: 'absolute', top: -3, right: -3, background: '#007aff', color: '#fff', fontSize: 8, fontWeight: 700, borderRadius: 5, padding: '1px 4px', lineHeight: 1.4 }}>
                     {appointments.length}
                   </span>
                 )}
@@ -165,22 +197,38 @@ export default function Layout({ children }: LayoutProps) {
         {/* ─── Navigation ─── */}
         <nav className="flex-1 px-2 py-3 overflow-y-auto">
           {!collapsed && (
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(60,60,67,0.35)', letterSpacing: '0.06em', textTransform: 'uppercase', padding: '2px 10px 6px' }}>
-              {t('nav.navigation')}
+            <div className="flex items-center justify-between" style={{ padding: '2px 10px 6px' }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(60,60,67,0.35)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('nav.navigation')}</span>
+              <button
+                onClick={() => setNavEditMode(m => !m)}
+                title={navEditMode ? 'Fertig' : 'Reihenfolge bearbeiten'}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, padding: '2px 4px', borderRadius: 5, color: navEditMode ? '#007aff' : 'rgba(60,60,67,0.35)' }}
+              >
+                {navEditMode ? <Check size={11} /> : <Pencil size={10} />}
+              </button>
             </div>
           )}
           <div className="space-y-0.5">
-            {NAV_ITEMS.map(item => {
+            {sortedNavItems.map(item => {
               const parentActive = isParentActive(item);
               return (
-                <div key={item.key}>
+                <div
+                  key={item.key}
+                  draggable={navEditMode && !collapsed}
+                  onDragStart={navEditMode ? () => handleNavDragStart(item.key) : undefined}
+                  onDragOver={navEditMode ? (e) => handleNavDragOver(e, item.key) : undefined}
+                  onDragEnd={navEditMode ? handleNavDragEnd : undefined}
+                  style={navEditMode ? { cursor: 'grab', opacity: 1 } : {}}
+                >
                   {/* Main nav link */}
                   <Link
-                    to={item.path}
-                    className={`nav-item ${parentActive ? 'active' : ''}`}
+                    to={navEditMode ? '#' : item.path}
+                    onClick={navEditMode ? (e) => e.preventDefault() : undefined}
+                    className={`nav-item ${parentActive && !navEditMode ? 'active' : ''}`}
                     style={collapsed ? { justifyContent: 'center', padding: '9px 0' } : {}}
                   >
-                    <item.icon size={15} strokeWidth={parentActive ? 2.5 : 1.8} color={parentActive ? '#007aff' : 'rgba(60,60,67,0.60)'} style={{ flexShrink: 0 }} />
+                    {navEditMode && !collapsed && <GripVertical size={11} color="rgba(60,60,67,0.30)" style={{ flexShrink: 0, marginRight: -2 }} />}
+                    <item.icon size={15} strokeWidth={parentActive ? 2.5 : 1.8} color={parentActive && !navEditMode ? '#007aff' : 'rgba(60,60,67,0.60)'} style={{ flexShrink: 0 }} />
                     {!collapsed && <span>{item.label}</span>}
                     {!collapsed && item.key === 'debt' && (breachCount > 0 || warningCount > 0) && (
                       <span className="ml-auto" style={{ background: '#ff3b30', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 10, padding: '1px 6px', lineHeight: 1.6 }}>
@@ -190,7 +238,7 @@ export default function Layout({ children }: LayoutProps) {
                   </Link>
 
                   {/* Sub-items (e.g. Cashflow under Portfolio) */}
-                  {!collapsed && item.sub && parentActive && (
+                  {!collapsed && !navEditMode && item.sub && parentActive && (
                     <div style={{ paddingLeft: 22, marginTop: 1, marginBottom: 2 }}>
                       {item.sub.map(sub => {
                         const subAct = isSubActive(sub);
@@ -262,12 +310,12 @@ export default function Layout({ children }: LayoutProps) {
         <div className="flex items-center gap-2 px-3 py-3" style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
           <div className="flex items-center justify-center rounded-full flex-shrink-0"
             style={{ width: 30, height: 30, background: 'linear-gradient(145deg, #007aff, #af52de)', color: '#fff', fontSize: 11, fontWeight: 700 }}>
-            MW
+            JL
           </div>
           {!collapsed && (
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#1c1c1e', letterSpacing: '-0.01em' }}>M. Wagner</div>
-              <div style={{ fontSize: 11, color: 'rgba(60,60,67,0.45)' }}>Portfolio Manager</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#1c1c1e', letterSpacing: '-0.01em' }}>Jan Leuker</div>
+              <div style={{ fontSize: 11, color: 'rgba(60,60,67,0.45)' }}>Investment Manager</div>
             </div>
           )}
           {/* 🌐 Language toggle flag */}

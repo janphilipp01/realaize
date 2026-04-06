@@ -158,11 +158,23 @@ export interface AcquisitionDeal {
   vendorName?: string;
   totalArea?: number;
   marketLocationId?: string;
+  // Extended property data (Investment)
+  yearBuilt?: number;
+  floors?: number;
+  parkingSpaces?: number;
+  lettableArea?: number;
+  acquisitionDate?: string;
+  units?: Unit[];
   // Development-specific fields (only when dealType === 'Development')
   developmentType?: 'Neubau' | 'Kernsanierung' | 'Modernisierung' | 'Umbau' | 'Aufstockung' | 'Anbau';
   estimatedDevBudget?: number;  // total construction budget
   estimatedDevDuration?: number; // months
   projectedRentAfterDev?: number; // annual rent after completion
+  startDate?: string;
+  plannedEndDate?: string;
+  gewerke?: Array<{ id: string; category: GeverkCategory; description: string; underwritingBudget: number }>;
+  debtAssumptions?: DevDebtAssumptions;
+  valuationAssumptions?: DevValuationAssumptions;
 }
 
 export interface UnderwritingAssumptions {

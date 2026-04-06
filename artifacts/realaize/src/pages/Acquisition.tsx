@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, AlertTriangle, FileText, Search, X, ChevronRight, ChevronLeft, Zap, CheckCircle, Building2, HardHat } from 'lucide-react';
+import { Plus, AlertTriangle, FileText, Search, X, ChevronRight, ChevronLeft, Zap, CheckCircle, Building2, HardHat, Trash2 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { PageHeader, StageBadge, CompletenessRing, GlassPanel, KPICard, Modal } from '../components/shared';
 import { computeDealKPIs, formatEUR, formatPct, formatX } from '../utils/kpiEngine';
 import { useLanguage } from '../i18n/LanguageContext';
-import type { AcquisitionDeal, DealType, UsageType, UnderwritingAssumptions, FinancingAssumptions } from '../models/types';
+import type { AcquisitionDeal, DealType, UsageType, UnderwritingAssumptions, FinancingAssumptions, GeverkCategory, DevDebtAssumptions, DevValuationAssumptions } from '../models/types';
 
 const STAGE_ORDER = ['Screening', 'LOI', 'Due Diligence', 'Signing', 'Closing'];
 const USAGE_TYPES: UsageType[] = ['Wohnen', 'Büro', 'Einzelhandel', 'Logistik', 'Mixed Use'];
