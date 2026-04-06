@@ -31,7 +31,20 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    runtimeErrorOverlay(),
+    runtimeErrorOverlay({
+      filter(e) {
+        // React 19 concurrent mode recovers from probe-render errors itself;
+        // suppress the overlay so users don't see a false crash.
+        if (
+          typeof e?.message === 'string' &&
+          (e.message.includes('concurrent rendering') ||
+           e.message.includes('Invalid hook call'))
+        ) {
+          return false;
+        }
+        return true;
+      },
+    }),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [

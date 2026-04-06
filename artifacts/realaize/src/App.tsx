@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import PortfolioPage from './pages/Portfolio';
@@ -15,25 +15,27 @@ export default function App() {
   return (
     <BrowserRouter basename={base}>
       <Layout>
-        <Routes>
-          <Route path="/" element={<PortfolioPage />} />
-          <Route path="/cashflow" element={<CashFlowPage />} />
-          <Route path="/assets" element={<AssetsPage />} />
-          <Route path="/assets/:id" element={<AssetDetailPage />} />
-          <Route path="/developments" element={<DevelopmentsPage />} />
-          <Route path="/developments/:id" element={<DevelopmentDetailPage />} />
-          <Route path="/debt" element={<DebtPage />} />
-          <Route path="/sales" element={<SalesPage />} />
-          <Route path="/sales/:id" element={<SaleDetailPage />} />
-          <Route path="/acquisition" element={<AcquisitionPage />} />
-          <Route path="/acquisition/:id" element={<DealDashboard />} />
-          <Route path="/radar" element={<DealRadarPage />} />
-          <Route path="/markt" element={<MarktPage />} />
-          <Route path="/documents" element={<DocumentsPage />} />
-          <Route path="/ai" element={<AICopilotPage />} />
-          <Route path="/news" element={<NewsPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-        </Routes>
+        <Suspense fallback={null}>
+          <Routes>
+            <Route path="/" element={<PortfolioPage />} />
+            <Route path="/cashflow" element={<CashFlowPage />} />
+            <Route path="/assets" element={<AssetsPage />} />
+            <Route path="/assets/:id" element={<AssetDetailPage />} />
+            <Route path="/developments" element={<DevelopmentsPage />} />
+            <Route path="/developments/:id" element={<DevelopmentDetailPage />} />
+            <Route path="/debt" element={<DebtPage />} />
+            <Route path="/sales" element={<SalesPage />} />
+            <Route path="/sales/:id" element={<SaleDetailPage />} />
+            <Route path="/acquisition" element={<AcquisitionPage />} />
+            <Route path="/acquisition/:id" element={<DealDashboard />} />
+            <Route path="/radar" element={<DealRadarPage />} />
+            <Route path="/markt" element={<MarktPage />} />
+            <Route path="/documents" element={<DocumentsPage />} />
+            <Route path="/ai" element={<AICopilotPage />} />
+            <Route path="/news" element={<NewsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Routes>
+        </Suspense>
       </Layout>
     </BrowserRouter>
   );
