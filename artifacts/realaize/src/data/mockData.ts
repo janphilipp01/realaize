@@ -57,6 +57,9 @@ export const mockAssets: Asset[] = [
     capexProjects: [
       { id: 'capex-001-1', assetId: 'asset-001', name: 'Lobby-Renovation EG', budget: 280_000, spent: 195_000, status: 'Laufend', startDate: '2024-01-01', endDate: '2024-06-30' }
     ],
+    exitCapRate: 5.0,
+    holdingPeriodYears: 8,
+    ervPerSqm: 22.5,
   },
   {
     id: 'asset-002',
@@ -101,6 +104,9 @@ export const mockAssets: Asset[] = [
       { id: 'doc-002-1', assetId: 'asset-002', name: 'Kaufvertrag Schwabing.pdf', category: 'Kaufvertrag', uploadDate: '2019-08-25', fileSize: '1.9 MB', tags: ['KV'], uploadedBy: 'M. Wagner' },
     ],
     capexProjects: [],
+    exitCapRate: 4.0,
+    holdingPeriodYears: 10,
+    ervPerSqm: 20.5,
   },
   {
     id: 'asset-003',
@@ -140,6 +146,9 @@ export const mockAssets: Asset[] = [
     cashFlows: generateCashFlows('asset-003', 1_080_000, -380_000),
     documents: [],
     capexProjects: [],
+    exitCapRate: 5.5,
+    holdingPeriodYears: 10,
+    ervPerSqm: 8.0,
   },
 ];
 
@@ -203,6 +212,10 @@ export const mockDeals: AcquisitionDeal[] = [
       area: 3_280,
       rentPerSqm: 15.85,
       otherOperatingIncome: 18_000,
+      ervPerSqm: 17.0,
+      projectedAnnualRent: Math.round(3_280 * 17.0 * 12),
+      contingencyPercent: 10,
+      marketAssumptions: { ervGrowthRate: 2.5, exitCapRate: 4.0, rentalGrowthRate: 2.0, holdingPeriodYears: 10 },
     },
     financingAssumptions: {
       loanAmount: 9_230_000,
@@ -286,6 +299,12 @@ export const mockDeals: AcquisitionDeal[] = [
       area: 6_800,
       rentPerSqm: 25.0,
       otherOperatingIncome: 35_000,
+      ervPerSqm: 28.0,
+      projectedAnnualRent: Math.round(6_800 * 28.0 * 12),
+      contingencyPercent: 12,
+      startDate: '2025-03-01',
+      plannedEndDate: '2027-06-30',
+      marketAssumptions: { ervGrowthRate: 1.5, exitCapRate: 5.0, rentalGrowthRate: 1.5, holdingPeriodYears: 10 },
     },
     financingAssumptions: {
       loanAmount: 20_475_000,
@@ -341,6 +360,10 @@ export const mockDeals: AcquisitionDeal[] = [
       area: 1_450,
       rentPerSqm: 31.7,
       otherOperatingIncome: 0,
+      ervPerSqm: 28.0,
+      projectedAnnualRent: Math.round(1_450 * 28.0 * 12),
+      contingencyPercent: 10,
+      marketAssumptions: { ervGrowthRate: 1.0, exitCapRate: 5.5, rentalGrowthRate: 1.0, holdingPeriodYears: 7 },
     },
     financingAssumptions: {
       loanAmount: 5_070_000,

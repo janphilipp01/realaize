@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, AlertTriangle, FileText, Search, X, ChevronRight, ChevronLeft, Zap, CheckCircle, Building2, HardHat, Trash2 } from 'lucide-react';
+import { Plus, AlertTriangle, FileText, Search, X, ChevronRight, ChevronLeft, Zap, CheckCircle, Building2, HardHat, Trash2, TrendingUp } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { PageHeader, StageBadge, CompletenessRing, GlassPanel, KPICard, Modal } from '../components/shared';
 import { computeDealKPIs, formatEUR, formatPct, formatX } from '../utils/kpiEngine';
@@ -62,10 +62,15 @@ function DealCard({ deal }: { deal: AcquisitionDeal }) {
 }
 
 // ── Defaults ────────────────────────────────────────────
+const defaultMarketAssumptions = {
+  ervGrowthRate: 2.0, exitCapRate: 5.0, rentalGrowthRate: 2.0, holdingPeriodYears: 10,
+};
 const defaultUW: UnderwritingAssumptions = {
   purchasePrice: 0, closingCostPercent: 6.5, brokerFeePercent: 1.5, initialCapex: 0,
   annualGrossRent: 0, vacancyRatePercent: 5, managementCostPercent: 3,
   maintenanceReservePerSqm: 10, nonRecoverableOpex: 0, area: 0, rentPerSqm: 0, otherOperatingIncome: 0,
+  ervPerSqm: 0, projectedAnnualRent: 0, contingencyPercent: 10,
+  marketAssumptions: { ...defaultMarketAssumptions },
 };
 const defaultFin: FinancingAssumptions = {
   loanAmount: 0, interestRate: 4.0, amortizationRate: 2.0, loanTerm: 10, lenderName: '', fixedRatePeriod: 5,
@@ -116,21 +121,26 @@ function NewDealWizard({ onClose, onSave }: { onClose: () => void; onSave: (deal
   const filledFields = [form.name, form.city, form.uw.purchasePrice, form.uw.area, form.uw.annualGrossRent || form.projectedRentAfterDev, form.fin.loanAmount].filter(Boolean).length;
   const completeness = Math.round((filledFields / 6) * 100);
 
-  // Steps differ: Investment has 4, Development has 5 (extra dev-specific step)
+  // Steps: Investment has 5, Development has 6 (extra dev-specific step)
+  const mktLabel = lang === 'de' ? 'Marktannahmen' : 'Market';
   const stepTitles = isDev
-    ? [lang === 'de' ? 'Basisdaten' : 'Basic Data', lang === 'de' ? 'Development' : 'Development', 'Underwriting', lang === 'de' ? 'Finanzierung' : 'Financing', lang === 'de' ? 'Zusammenfassung' : 'Summary']
-    : [lang === 'de' ? 'Basisdaten' : 'Basic Data', 'Underwriting', lang === 'de' ? 'Finanzierung' : 'Financing', lang === 'de' ? 'Zusammenfassung' : 'Summary'];
+    ? [lang === 'de' ? 'Basisdaten' : 'Basic Data', 'Development', 'Underwriting', mktLabel, lang === 'de' ? 'Finanzierung' : 'Financing', lang === 'de' ? 'Zusammenfassung' : 'Summary']
+    : [lang === 'de' ? 'Basisdaten' : 'Basic Data', 'Underwriting', mktLabel, lang === 'de' ? 'Finanzierung' : 'Financing', lang === 'de' ? 'Zusammenfassung' : 'Summary'];
   const maxStep = stepTitles.length - 1;
+  const uwStep = isDev ? 2 : 1;
+  const mktStep = isDev ? 3 : 2;
+  const finStep = isDev ? 4 : 3;
 
   const canProceed = () => {
     if (step === 0) return form.name.trim() && form.city.trim();
     if (isDev && step === 1) return form.estimatedDevBudget > 0;
-    const uwStep = isDev ? 2 : 1;
-    const finStep = isDev ? 3 : 2;
     if (step === uwStep) return form.uw.purchasePrice > 0 && form.uw.area > 0;
     if (step === finStep) return form.fin.loanAmount > 0;
     return true;
   };
+
+  const updateMA = (patch: Partial<typeof defaultMarketAssumptions>) =>
+    setForm(f => ({ ...f, uw: { ...f.uw, marketAssumptions: { ...f.uw.marketAssumptions, ...patch } } }));
 
   const handleSave = () => {
     const now = new Date().toISOString();
@@ -283,7 +293,7 @@ function NewDealWizard({ onClose, onSave }: { onClose: () => void; onSave: (deal
       )}
 
       {/* ── Underwriting Step ── */}
-      {step === (isDev ? 2 : 1) && (
+      {step === uwStep && (
         <div className="space-y-4 animate-fade-in">
           <div className="grid grid-cols-2 gap-4">
             <div><label style={labelStyle}>Purchase Price (€) *</label><input type="number" className="input-glass" style={inputStyle} value={form.uw.purchasePrice || ''} onChange={e => syncLoan(parseFloat(e.target.value) || 0)} /></div>
@@ -307,8 +317,113 @@ function NewDealWizard({ onClose, onSave }: { onClose: () => void; onSave: (deal
         </div>
       )}
 
+      {/* ── Market Assumptions Step ── */}
+      {step === mktStep && (
+        <div className="space-y-4 animate-fade-in">
+          <div className="p-3 rounded-xl flex items-center gap-3" style={{ background: 'rgba(0,122,255,0.05)', border: '1px solid rgba(0,122,255,0.12)' }}>
+            <TrendingUp size={15} color="#007aff" />
+            <span style={{ fontSize: 12, color: 'rgba(60,60,67,0.70)' }}>
+              {lang === 'de'
+                ? 'Marktannahmen bilden die Basis für die DCF-Analyse und den Exit-Wert. Diese werden beim Überführen in den Bestand übernommen.'
+                : 'Market assumptions are the basis for the DCF analysis and exit valuation. They are carried over when transferred to portfolio.'}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label style={labelStyle}>ERV €/m²/{lang === 'de' ? 'Mon' : 'mo'}</label>
+              <input type="number" step="0.5" className="input-glass" style={inputStyle}
+                value={form.uw.ervPerSqm || ''}
+                onChange={e => {
+                  const erv = parseFloat(e.target.value) || 0;
+                  updateUW({ ervPerSqm: erv, projectedAnnualRent: Math.round(form.uw.area * erv * 12) });
+                }} />
+              {form.uw.area > 0 && form.uw.ervPerSqm > 0 && (
+                <div style={{ fontSize: 11, color: 'rgba(60,60,67,0.45)', marginTop: 4 }}>
+                  = {formatEUR(form.uw.area * form.uw.ervPerSqm * 12)} p.a. (ERV)
+                </div>
+              )}
+            </div>
+            <div>
+              <label style={labelStyle}>{lang === 'de' ? 'Haltedauer (Jahre)' : 'Holding Period (yrs)'}</label>
+              <input type="number" className="input-glass" style={inputStyle}
+                value={form.uw.marketAssumptions.holdingPeriodYears}
+                onChange={e => updateMA({ holdingPeriodYears: parseInt(e.target.value) || 10 })} />
+            </div>
+            <div>
+              <label style={labelStyle}>{lang === 'de' ? 'Mietwachstum p.a. (%)' : 'Rent Growth p.a. (%)'}</label>
+              <input type="number" step="0.1" className="input-glass" style={inputStyle}
+                value={form.uw.marketAssumptions.rentalGrowthRate}
+                onChange={e => updateMA({ rentalGrowthRate: parseFloat(e.target.value) || 0 })} />
+            </div>
+            <div>
+              <label style={labelStyle}>{lang === 'de' ? 'ERV-Wachstum p.a. (%)' : 'ERV Growth p.a. (%)'}</label>
+              <input type="number" step="0.1" className="input-glass" style={inputStyle}
+                value={form.uw.marketAssumptions.ervGrowthRate}
+                onChange={e => updateMA({ ervGrowthRate: parseFloat(e.target.value) || 0 })} />
+            </div>
+            <div>
+              <label style={labelStyle}>{lang === 'de' ? 'Exit-Cap-Rate (%)' : 'Exit Cap Rate (%)'}</label>
+              <input type="number" step="0.1" className="input-glass" style={inputStyle}
+                value={form.uw.marketAssumptions.exitCapRate}
+                onChange={e => updateMA({ exitCapRate: parseFloat(e.target.value) || 0 })} />
+              {form.uw.marketAssumptions.exitCapRate > 0 && (
+                <div style={{ fontSize: 11, color: 'rgba(60,60,67,0.45)', marginTop: 4 }}>
+                  {lang === 'de' ? 'Exit-Multiple: ' : 'Exit Multiple: '}{(100 / form.uw.marketAssumptions.exitCapRate).toFixed(1)}x NOI
+                </div>
+              )}
+            </div>
+            {isDev && (
+              <div>
+                <label style={labelStyle}>{lang === 'de' ? 'Baukostenpuffer (%)' : 'Contingency (%)'}</label>
+                <input type="number" step="1" className="input-glass" style={inputStyle}
+                  value={form.uw.contingencyPercent}
+                  onChange={e => updateUW({ contingencyPercent: parseFloat(e.target.value) || 0 })} />
+              </div>
+            )}
+            {isDev && (
+              <div>
+                <label style={labelStyle}>{lang === 'de' ? 'Baustart' : 'Construction Start'}</label>
+                <input type="date" className="input-glass" style={inputStyle}
+                  value={form.uw.startDate || ''}
+                  onChange={e => updateUW({ startDate: e.target.value })} />
+              </div>
+            )}
+            {isDev && (
+              <div>
+                <label style={labelStyle}>{lang === 'de' ? 'Fertigstellung (geplant)' : 'Planned Completion'}</label>
+                <input type="date" className="input-glass" style={inputStyle}
+                  value={form.uw.plannedEndDate || ''}
+                  onChange={e => updateUW({ plannedEndDate: e.target.value })} />
+              </div>
+            )}
+          </div>
+          {form.uw.purchasePrice > 0 && form.uw.marketAssumptions.exitCapRate > 0 && form.uw.annualGrossRent > 0 && (
+            <div className="p-3 rounded-xl" style={{ background: 'rgba(0,0,0,0.03)' }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(60,60,67,0.45)', marginBottom: 8, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                {lang === 'de' ? 'Exit-Wert (Schätzung)' : 'Indicative Exit Value'}
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                {(() => {
+                  const noi = form.uw.annualGrossRent * (1 - form.uw.vacancyRatePercent / 100) - form.uw.annualGrossRent * (form.uw.managementCostPercent / 100) - form.uw.maintenanceReservePerSqm * form.uw.area;
+                  const growth = Math.pow(1 + (form.uw.marketAssumptions.rentalGrowthRate || 0) / 100, form.uw.marketAssumptions.holdingPeriodYears);
+                  const exitNOI = noi * growth;
+                  const exitVal = exitNOI / (form.uw.marketAssumptions.exitCapRate / 100);
+                  return (
+                    <>
+                      <div><div style={{ fontSize: 10, color: 'rgba(60,60,67,0.45)', textTransform: 'uppercase' }}>NOI Jahr 1</div><div style={{ fontSize: 14, fontWeight: 700, color: '#1c1c1e' }}>{formatEUR(noi, true)}</div></div>
+                      <div><div style={{ fontSize: 10, color: 'rgba(60,60,67,0.45)', textTransform: 'uppercase' }}>NOI Exit ({lang === 'de' ? 'Jahr' : 'Year'} {form.uw.marketAssumptions.holdingPeriodYears})</div><div style={{ fontSize: 14, fontWeight: 700, color: '#1c1c1e' }}>{formatEUR(exitNOI, true)}</div></div>
+                      <div><div style={{ fontSize: 10, color: 'rgba(60,60,67,0.45)', textTransform: 'uppercase' }}>{lang === 'de' ? 'Indikativer Verkaufspreis' : 'Indicative Exit Value'}</div><div style={{ fontSize: 14, fontWeight: 700, color: '#007aff' }}>{formatEUR(exitVal, true)}</div></div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Financing Step ── */}
-      {step === (isDev ? 3 : 2) && (
+      {step === finStep && (
         <div className="space-y-4 animate-fade-in">
           <div className="grid grid-cols-2 gap-4">
             <div>

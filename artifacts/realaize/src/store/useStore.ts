@@ -18,6 +18,11 @@ interface AppSettings {
   defaultClosingCostPct: number;  // %, default 6.5
   defaultBrokerFeePct: number;    // %, default 1.5
   defaultRentalGrowthRate: number; // % p.a., default 2.0
+  // Market assumptions (per usage type)
+  defaultErvGrowthRates: Record<string, number>;  // % p.a. per Nutzungsart
+  defaultExitCapRates: Record<string, number>;     // % per Nutzungsart
+  defaultHoldingPeriod: number;                    // years, default 10
+  defaultContingencyPercent: number;               // %, default 10
 }
 
 interface AppState {
@@ -128,6 +133,10 @@ const defaultSettings: AppSettings = {
   defaultClosingCostPct: 6.5,
   defaultBrokerFeePct: 1.5,
   defaultRentalGrowthRate: 2.0,
+  defaultErvGrowthRates: { 'Wohnen': 2.0, 'Büro': 1.5, 'Einzelhandel': 1.0, 'Logistik': 2.5, 'Mixed Use': 1.8 },
+  defaultExitCapRates:   { 'Wohnen': 4.0, 'Büro': 5.0, 'Einzelhandel': 5.5, 'Logistik': 5.5, 'Mixed Use': 5.0 },
+  defaultHoldingPeriod: 10,
+  defaultContingencyPercent: 10,
 };
 
 export const useStore = create<AppState>()(
@@ -187,6 +196,8 @@ export const useStore = create<AppState>()(
       transferToBestand: (dealId) => {
         const deal = get().deals.find(d => d.id === dealId);
         if (!deal) return;
+        const ma = deal.underwritingAssumptions.marketAssumptions;
+        const s = get().settings;
         const newAsset: Asset = {
           id: `asset-${Date.now()}`, name: deal.name, address: deal.address, city: deal.city, zip: deal.zip,
           usageType: deal.usageType, status: 'Bestand', acquisitionDate: new Date().toISOString().split('T')[0],
@@ -200,7 +211,11 @@ export const useStore = create<AppState>()(
             maintenanceReservePerSqm: deal.underwritingAssumptions.maintenanceReservePerSqm,
             nonRecoverableOpex: deal.underwritingAssumptions.nonRecoverableOpex,
             otherOperatingIncome: deal.underwritingAssumptions.otherOperatingIncome,
+            rentalGrowthRate: ma?.rentalGrowthRate ?? s.defaultRentalGrowthRate,
           },
+          exitCapRate: ma?.exitCapRate ?? (s.defaultExitCapRates[deal.usageType] || 5.0),
+          holdingPeriodYears: ma?.holdingPeriodYears ?? s.defaultHoldingPeriod,
+          ervPerSqm: deal.underwritingAssumptions.ervPerSqm || deal.underwritingAssumptions.rentPerSqm,
           units: [], debtInstruments: [], covenants: [], cashFlows: [], documents: deal.documents, capexProjects: [],
           completenessScore: 40,
         };
@@ -267,6 +282,7 @@ export const useStore = create<AppState>()(
         const annualRent = units.reduce((s, u) => s + u.monthlyRent * 12, 0);
         const lettedUnits = units.filter(u => u.leaseType === 'Vermietet');
         const occupancyRate = units.length > 0 ? lettedUnits.length / units.length : 0;
+        const cfg = get().settings;
         const newAsset: Asset = {
           id: newAssetId, name: dev.name, address: dev.address, city: dev.city, zip: dev.zip,
           usageType: dev.usageType, status: 'Bestand', acquisitionDate: new Date().toISOString().split('T')[0],
@@ -274,19 +290,22 @@ export const useStore = create<AppState>()(
           totalArea: dev.totalArea, lettableArea: dev.totalArea * 0.9,
           occupancyRate, annualRent,
           operatingCosts: {
-            vacancyRatePercent: 5,
-            managementCostPercent: 3,
-            maintenanceReservePerSqm: 10,
+            vacancyRatePercent: cfg.defaultVacancyRate,
+            managementCostPercent: cfg.defaultMgmtCostPct,
+            maintenanceReservePerSqm: cfg.defaultMaintenancePerSqm,
             nonRecoverableOpex: 0,
             otherOperatingIncome: 0,
+            rentalGrowthRate: cfg.defaultRentalGrowthRate,
           },
+          exitCapRate: cfg.defaultExitCapRates[dev.usageType] || 5.0,
+          holdingPeriodYears: cfg.defaultHoldingPeriod,
           units, debtInstruments: [], covenants: [], cashFlows: [], documents: dev.documents, capexProjects: [],
           completenessScore: 45,
         };
-        set(s => ({
-          assets: [...s.assets, newAsset],
-          developments: s.developments.map(d => d.id === devId ? { ...d, status: 'Fertiggestellt', holdSellDecision: 'Hold' } : d),
-          auditLog: [{ id: `audit-${Date.now()}`, action: 'Development → Bestand', entityType: 'Asset', entityId: newAsset.id, entityName: dev.name, user: 'M. Wagner', timestamp: new Date().toISOString(), details: `Development "${dev.name}" in Bestand überführt.` }, ...s.auditLog],
+        set(st => ({
+          assets: [...st.assets, newAsset],
+          developments: st.developments.map(d => d.id === devId ? { ...d, status: 'Fertiggestellt', holdSellDecision: 'Hold' } : d),
+          auditLog: [{ id: `audit-${Date.now()}`, action: 'Development → Bestand', entityType: 'Asset', entityId: newAsset.id, entityName: dev.name, user: 'M. Wagner', timestamp: new Date().toISOString(), details: `Development "${dev.name}" in Bestand überführt.` }, ...st.auditLog],
         }));
       },
 

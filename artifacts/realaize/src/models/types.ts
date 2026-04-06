@@ -34,6 +34,10 @@ export interface Asset {
   completenessScore: number; // 0-100
   imageUrl?: string;
   notes?: string;
+  // Market / cashflow assumptions (from underwriting or editable)
+  exitCapRate?: number;        // % e.g. 5.0 — used for terminal value in cashflow model
+  holdingPeriodYears?: number; // default 10
+  ervPerSqm?: number;          // ERV €/m²/month
 }
 
 // Operating costs per asset — mirrors underwriting structure
@@ -177,6 +181,13 @@ export interface AcquisitionDeal {
   valuationAssumptions?: DevValuationAssumptions;
 }
 
+export interface MarketAssumptions {
+  ervGrowthRate: number;      // % p.a., ERV growth by usage type
+  exitCapRate: number;        // %, exit NIY for sale valuation
+  rentalGrowthRate: number;   // % p.a., actual rent growth (can differ from ERV)
+  holdingPeriodYears: number; // default 10
+}
+
 export interface UnderwritingAssumptions {
   purchasePrice: number;
   closingCostPercent: number; // e.g. 6.5 for 6.5%
@@ -190,6 +201,13 @@ export interface UnderwritingAssumptions {
   area: number; // sqm
   rentPerSqm: number; // monthly
   otherOperatingIncome: number;
+  // Extended fields
+  ervPerSqm: number;               // ERV €/m²/month (market rent after repositioning)
+  projectedAnnualRent: number;     // area × ERV × 12
+  contingencyPercent: number;      // default 10%, development only
+  startDate?: string;              // construction start (dev only)
+  plannedEndDate?: string;         // construction end (dev only)
+  marketAssumptions: MarketAssumptions;
 }
 
 export interface FinancingAssumptions {

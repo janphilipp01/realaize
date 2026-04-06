@@ -5,10 +5,11 @@ import {
   Edit3, Save, X, FileText, AlertTriangle, TrendingUp,
   BarChart3, Home, Info, Trash2
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line, CartesianGrid } from 'recharts';
 import { useStore } from '../store/useStore';
 import { PageHeader, GlassPanel, KPICard, StatusBadge, CompletenessRing, SectionHeader, StageBadge } from '../components/shared';
 import { formatEUR, formatPct, computeAssetNOI, computeAssetLTV, computeAssetMonthlyCashFlow } from '../utils/kpiEngine';
+import { computePropertyCashFlow } from '../utils/propertyCashFlowModel';
 import ImageManager, { TitleImageDisplay } from '../components/ImageManager';
 import DocumentUpload from '../components/DocumentUpload';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -155,6 +156,8 @@ export function AssetDetailPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingOpCosts, setEditingOpCosts] = useState(false);
   const [opCostEdits, setOpCostEdits] = useState(asset?.operatingCosts ?? {});
+  const [dcfExitCap, setDcfExitCap] = useState<number | null>(null);
+  const [dcfHolding, setDcfHolding] = useState<number | null>(null);
 
   if (!asset) return (
     <div className="p-8">
@@ -448,52 +451,137 @@ export function AssetDetailPage() {
         </div>
       )}
 
-      {activeTab === 'cashflow' && (
-        <GlassPanel style={{ padding: 24 }} className="animate-fade-in">
-          <SectionHeader title="Cash Flow Historie & Forecast" />
-          <ResponsiveContainer width="100%" height={260}>
-            <AreaChart data={cfData}>
-              <defs>
-                <linearGradient id="gradInAsset" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#007aff" stopOpacity={0.3} />
-                  <stop offset="100%" stopColor="#007aff" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="period" tick={{ fontSize: 11, fill: 'rgba(245,240,235,0.4)' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: 'rgba(245,240,235,0.4)' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}k`} />
-              <Tooltip contentStyle={{ background: 'rgba(255,255,255,0.97)', border: '1px solid rgba(0,0,0,0.10)', borderRadius: 10, fontSize: 12 }} formatter={(v: any) => [`${v}k €`]} />
-              <Area type="monotone" dataKey="Einnahmen" stroke="#007aff" strokeWidth={2} fill="url(#gradInAsset)" />
-              <Area type="monotone" dataKey="Ausgaben" stroke="#f87171" strokeWidth={2} fill="none" strokeDasharray="4 4" />
-            </AreaChart>
-          </ResponsiveContainer>
-          <div className="mt-4">
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                  {['Periode', 'Kategorie', 'Beschreibung', 'Betrag', 'Art'].map(h => (
-                    <th key={h} style={{ padding: '8px 12px', fontSize: 10, fontWeight: 600, color: 'rgba(60,60,67,0.45)', textAlign: 'left', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {asset.cashFlows.slice(-20).reverse().map(cf => (
-                  <tr key={cf.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
-                    <td style={{ padding: '8px 12px', fontSize: 12, color: 'rgba(60,60,67,0.45)', fontFamily: 'ui-monospace, monospace' }}>{cf.period}</td>
-                    <td style={{ padding: '8px 12px' }}><span className="badge-neutral" style={{ fontSize: 10 }}>{cf.category}</span></td>
-                    <td style={{ padding: '8px 12px', fontSize: 12, color: 'rgba(60,60,67,0.70)' }}>{cf.description}</td>
-                    <td style={{ padding: '8px 12px', fontFamily: 'ui-monospace, monospace', fontSize: 12, fontWeight: 600, color: cf.amount > 0 ? '#4ade80' : '#f87171' }}>
-                      {cf.amount > 0 ? '+' : ''}{formatEUR(cf.amount)}
-                    </td>
-                    <td style={{ padding: '8px 12px' }}>
-                      {cf.isForecast ? <span className="badge-info" style={{ fontSize: 10 }}>Prognose</span> : <span className="badge-neutral" style={{ fontSize: 10 }}>Ist</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {activeTab === 'cashflow' && (() => {
+        const annualDebtService = asset.debtInstruments.reduce((s, d) =>
+          s + d.outstandingAmount * ((d.interestRate / 100) + (d.amortizationRate / 100)), 0);
+        const dcf = computePropertyCashFlow(asset, {
+          holdingPeriodYears: dcfHolding ?? asset.holdingPeriodYears ?? 10,
+          exitCapRate: dcfExitCap ?? asset.exitCapRate ?? 5.0,
+          annualDebtService,
+        });
+        const chartData = dcf.annualRows.map(r => ({
+          year: `Jahr ${r.year}`,
+          NOI: Math.round(r.noi / 1000),
+          'Levered CF': Math.round(r.leveredCashFlow / 1000),
+          Kumulativ: Math.round(r.cumulative / 1000),
+        }));
+        const kpiLabelStyle = { fontSize: 10, color: 'rgba(60,60,67,0.45)', textTransform: 'uppercase' as const, letterSpacing: '0.05em' };
+        const kpiValStyle = (c?: string): React.CSSProperties => ({ fontSize: 18, fontWeight: 700, color: c || '#1c1c1e', fontFamily: 'ui-monospace, monospace' });
+        return (
+          <div className="space-y-6 animate-fade-in">
+            {/* Assumptions Panel */}
+            <GlassPanel style={{ padding: 20 }}>
+              <div className="flex items-center justify-between mb-4">
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#1c1c1e' }}>DCF-Annahmen</div>
+              </div>
+              <div className="grid grid-cols-4 gap-4">
+                <div>
+                  <label style={{ ...kpiLabelStyle, display: 'block', marginBottom: 4 }}>Haltedauer (Jahre)</label>
+                  <input type="number" className="input-glass" style={{ width: '100%' }}
+                    value={dcfHolding ?? asset.holdingPeriodYears ?? 10}
+                    onChange={e => setDcfHolding(parseInt(e.target.value) || 10)} />
+                </div>
+                <div>
+                  <label style={{ ...kpiLabelStyle, display: 'block', marginBottom: 4 }}>Exit-Cap-Rate (%)</label>
+                  <input type="number" step="0.1" className="input-glass" style={{ width: '100%' }}
+                    value={dcfExitCap ?? asset.exitCapRate ?? 5.0}
+                    onChange={e => setDcfExitCap(parseFloat(e.target.value) || 5.0)} />
+                </div>
+                <div>
+                  <label style={{ ...kpiLabelStyle, display: 'block', marginBottom: 4 }}>Mietwachstum p.a. (%)</label>
+                  <input type="number" step="0.1" className="input-glass" readOnly
+                    style={{ width: '100%', opacity: 0.6, cursor: 'not-allowed' }}
+                    value={asset.operatingCosts.rentalGrowthRate ?? 2.0} />
+                  <div style={{ fontSize: 10, color: 'rgba(60,60,67,0.40)', marginTop: 2 }}>Bearbeitung in OpCosts</div>
+                </div>
+                <div>
+                  <label style={{ ...kpiLabelStyle, display: 'block', marginBottom: 4 }}>ERV €/m²/Mon</label>
+                  <input type="number" step="0.5" className="input-glass" style={{ width: '100%', opacity: 0.6, cursor: 'not-allowed' }}
+                    value={asset.ervPerSqm ?? 0} readOnly />
+                  <div style={{ fontSize: 10, color: 'rgba(60,60,67,0.40)', marginTop: 2 }}>Aus Underwriting</div>
+                </div>
+              </div>
+            </GlassPanel>
+
+            {/* IRR KPI Strip */}
+            <div className="grid grid-cols-4 gap-4">
+              <GlassPanel style={{ padding: 18 }}>
+                <div style={kpiLabelStyle}>Unlevered IRR</div>
+                <div style={kpiValStyle(dcf.unleveredIRR > 8 ? '#4ade80' : dcf.unleveredIRR > 5 ? '#fbbf24' : '#f87171')}>{dcf.unleveredIRR.toFixed(2)}%</div>
+                <div style={{ fontSize: 11, color: 'rgba(60,60,67,0.45)', marginTop: 2 }}>Auf Gesamtkapital</div>
+              </GlassPanel>
+              <GlassPanel style={{ padding: 18 }}>
+                <div style={kpiLabelStyle}>Levered IRR</div>
+                <div style={kpiValStyle(dcf.leveredIRR > 12 ? '#4ade80' : dcf.leveredIRR > 8 ? '#fbbf24' : '#f87171')}>{dcf.leveredIRR.toFixed(2)}%</div>
+                <div style={{ fontSize: 11, color: 'rgba(60,60,67,0.45)', marginTop: 2 }}>Auf Eigenkapital</div>
+              </GlassPanel>
+              <GlassPanel style={{ padding: 18 }}>
+                <div style={kpiLabelStyle}>Equity Multiple</div>
+                <div style={kpiValStyle(dcf.equityMultiple > 1.5 ? '#4ade80' : dcf.equityMultiple > 1.2 ? '#fbbf24' : '#f87171')}>{dcf.equityMultiple.toFixed(2)}x</div>
+                <div style={{ fontSize: 11, color: 'rgba(60,60,67,0.45)', marginTop: 2 }}>EK-Rückfluss</div>
+              </GlassPanel>
+              <GlassPanel style={{ padding: 18 }}>
+                <div style={kpiLabelStyle}>Exit-Wert (Jahr {dcf.holdingPeriodYears})</div>
+                <div style={kpiValStyle('#007aff')}>{formatEUR(dcf.terminalValue, true)}</div>
+                <div style={{ fontSize: 11, color: 'rgba(60,60,67,0.45)', marginTop: 2 }}>@ {dcf.exitCapRate}% Cap Rate</div>
+              </GlassPanel>
+            </div>
+
+            {/* Chart */}
+            <GlassPanel style={{ padding: 24 }}>
+              <SectionHeader title="NOI & Levered Cash Flow (jährlich)" />
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={chartData} barGap={4}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+                  <XAxis dataKey="year" tick={{ fontSize: 11, fill: 'rgba(60,60,67,0.55)' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: 'rgba(60,60,67,0.55)' }} axisLine={false} tickLine={false} tickFormatter={v => `${v}k`} />
+                  <Tooltip contentStyle={{ background: 'rgba(255,255,255,0.97)', border: '1px solid rgba(0,0,0,0.10)', borderRadius: 10, fontSize: 12 }} formatter={(v: any) => [`${v}k €`]} />
+                  <Bar dataKey="NOI" fill="rgba(0,122,255,0.7)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="Levered CF" fill="rgba(74,222,128,0.7)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </GlassPanel>
+
+            {/* Annual Table */}
+            <GlassPanel style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#1c1c1e' }}>Jährliche Cashflow-Tabelle</div>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(0,0,0,0.02)' }}>
+                      {['Jahr', 'Gross Rent', '− Leerstand', 'EGI', '− OpEx', 'NOI', '− Debt Service', 'Levered CF', 'Kumulativ'].map(h => (
+                        <th key={h} style={{ padding: '10px 14px', fontSize: 10, fontWeight: 600, color: 'rgba(60,60,67,0.45)', textAlign: 'right', letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dcf.annualRows.map(row => (
+                      <tr key={row.year} style={{ borderTop: '1px solid rgba(0,0,0,0.04)' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 700, color: '#1c1c1e', textAlign: 'right' }}>{row.year}</td>
+                        <td style={{ padding: '10px 14px', fontFamily: 'ui-monospace, monospace', color: '#007aff', textAlign: 'right' }}>{formatEUR(row.grossRent, true)}</td>
+                        <td style={{ padding: '10px 14px', fontFamily: 'ui-monospace, monospace', color: '#f87171', textAlign: 'right' }}>−{formatEUR(row.vacancyLoss, true)}</td>
+                        <td style={{ padding: '10px 14px', fontFamily: 'ui-monospace, monospace', color: '#1c1c1e', textAlign: 'right' }}>{formatEUR(row.effectiveGrossIncome, true)}</td>
+                        <td style={{ padding: '10px 14px', fontFamily: 'ui-monospace, monospace', color: '#f87171', textAlign: 'right' }}>−{formatEUR(row.managementCost + row.maintenanceReserve + row.nonRecoverableOpex, true)}</td>
+                        <td style={{ padding: '10px 14px', fontFamily: 'ui-monospace, monospace', fontWeight: 600, color: row.noi >= 0 ? '#1c1c1e' : '#f87171', textAlign: 'right' }}>{formatEUR(row.noi, true)}</td>
+                        <td style={{ padding: '10px 14px', fontFamily: 'ui-monospace, monospace', color: '#fbbf24', textAlign: 'right' }}>−{formatEUR(row.debtService, true)}</td>
+                        <td style={{ padding: '10px 14px', fontFamily: 'ui-monospace, monospace', fontWeight: 700, color: row.leveredCashFlow >= 0 ? '#4ade80' : '#f87171', textAlign: 'right' }}>{row.leveredCashFlow >= 0 ? '+' : ''}{formatEUR(row.leveredCashFlow, true)}</td>
+                        <td style={{ padding: '10px 14px', fontFamily: 'ui-monospace, monospace', color: row.cumulative >= 0 ? '#4ade80' : '#f87171', textAlign: 'right' }}>{formatEUR(row.cumulative, true)}</td>
+                      </tr>
+                    ))}
+                    <tr style={{ borderTop: '2px solid rgba(0,0,0,0.10)', background: 'rgba(0,122,255,0.03)' }}>
+                      <td colSpan={5} style={{ padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#1c1c1e' }}>Exit-Wert (Jahr {dcf.holdingPeriodYears})</td>
+                      <td colSpan={3} style={{ padding: '12px 14px', fontFamily: 'ui-monospace, monospace', fontWeight: 700, color: '#007aff', fontSize: 14, textAlign: 'right' }}>{formatEUR(dcf.terminalValue, true)}</td>
+                      <td style={{ padding: '12px 14px', fontSize: 10, color: 'rgba(60,60,67,0.45)', textAlign: 'right' }}>NOI / {dcf.exitCapRate}%</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </GlassPanel>
           </div>
-        </GlassPanel>
-      )}
+        );
+      })()}
 
       {activeTab === 'images' && (
         <GlassPanel style={{ padding: 24 }} className="animate-fade-in">
