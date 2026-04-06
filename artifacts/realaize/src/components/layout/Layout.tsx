@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import logoImg from '@assets/realaize_logo_black_1775002783753.PNG';
+import logoImg from '@assets/realaize_logo_app_1775478192767.png';
 import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Building2, TrendingUp, BarChart3, CreditCard,
