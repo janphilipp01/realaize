@@ -276,18 +276,18 @@ export default function PortfolioPage() {
         </GlassPanel>
 
         {/* Acquisition Pipeline */}
-        <GlassPanel style={{ padding: 24 }}>
+        <GlassPanel style={{ padding: 24, cursor: 'pointer' }} hover onClick={() => navigate('/acquisition')}>
           <div className="flex items-center justify-between mb-4">
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               {t('portfolio.acquisitionPipeline')}
             </div>
-            <Link to="/acquisition" style={{ color: '#007aff', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
+            <Link to="/acquisition" onClick={(e) => e.stopPropagation()} style={{ color: '#007aff', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
               {t('portfolio.all')} <ArrowRight size={12} />
             </Link>
           </div>
           <div className="space-y-3">
             {deals.map(deal => (
-              <Link key={deal.id} to={`/acquisition/${deal.id}`} style={{ textDecoration: 'none' }}>
+              <Link key={deal.id} to={`/acquisition/${deal.id}`} onClick={(e) => e.stopPropagation()} style={{ textDecoration: 'none' }}>
                 <div className="flex items-center justify-between p-3 rounded-xl glass-hover"
                   style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
                   <div>
