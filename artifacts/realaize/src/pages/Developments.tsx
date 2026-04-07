@@ -5,7 +5,7 @@ import {
   CheckCircle, Bot, Download, Upload, Trash2, Building2, Calendar,
   TrendingUp, BarChart3, FileText
 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid } from 'recharts';
 import { useStore } from '../store/useStore';
 import {
   GlassPanel, PageHeader, KPICard, SectionHeader, StatusBadge,
@@ -15,7 +15,6 @@ import ImageManager, { TitleImageDisplay } from '../components/ImageManager';
 import { formatEUR, formatPct } from '../utils/kpiEngine';
 import { analyzeHoldSell } from '../utils/irrCalculator';
 import { computeDealCashFlow } from '../utils/propertyCashFlowModel';
-import { CartesianGrid } from 'recharts';
 import { useLanguage } from '../i18n/LanguageContext';
 import type { GeverkPosition, GeverkCategory, ActivityEntry, Unit, UsageType, DevDebtAssumptions, DevValuationAssumptions } from '../models/types';
 
@@ -1259,9 +1258,33 @@ export function DevelopmentDetailPage() {
 
       {/* ── CASH FLOW / IRR ── */}
       {activeTab === 'cashflow' && (() => {
-        const uw = dev.underwritingAssumptions;
-        const fin = dev.financingAssumptions;
-        const dcf = computeDealCashFlow(uw, fin);
+        // Build synthetic UW + Fin from dev's own fields
+        const devUnits = dev.units || [];
+        const totalMonthlyRent = devUnits.reduce((s, u) => s + u.monthlyRent, 0);
+        const exitYield = dev.valuationAssumptions?.exitYieldPct || 5.0;
+        const loanAmt = dev.debtAssumptions
+          ? dev.purchasePrice * (dev.debtAssumptions.ltvPct / 100)
+          : 0;
+        const syntheticUW = {
+          purchasePrice: dev.purchasePrice + dev.totalBudget,
+          closingCostPercent: 6.5, brokerFeePercent: 1.5, initialCapex: 0,
+          annualGrossRent: totalMonthlyRent > 0 ? totalMonthlyRent * 12 : (dev.totalBudget * exitYield / 100),
+          vacancyRatePercent: 5, managementCostPercent: 3,
+          maintenanceReservePerSqm: 10, nonRecoverableOpex: 0,
+          area: dev.totalArea, rentPerSqm: dev.totalArea > 0 ? totalMonthlyRent / dev.totalArea : 0,
+          otherOperatingIncome: 0,
+          marketAssumptions: {
+            exitCapRate: exitYield, holdingPeriodYears: 10,
+            rentalGrowthRate: 2, ervGrowthRate: 2,
+          },
+        };
+        const syntheticFin = {
+          loanAmount: loanAmt, interestRate: dev.debtAssumptions?.interestRatePct || 4.0,
+          amortizationRate: 2.0, loanTerm: 10, lenderName: '', fixedRatePeriod: 5,
+        };
+        const uw = syntheticUW;
+        const fin = syntheticFin;
+        const dcf = computeDealCashFlow(uw as any, fin);
         const chartData = dcf.annualRows.map(r => ({
           year: `J${r.year}`,
           NOI: Math.round(r.noi / 1000),

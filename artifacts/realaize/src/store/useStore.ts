@@ -216,8 +216,9 @@ export const useStore = create<AppState>()(
           exitCapRate: ma?.exitCapRate ?? (s.defaultExitCapRates[deal.usageType] || 5.0),
           holdingPeriodYears: ma?.holdingPeriodYears ?? s.defaultHoldingPeriod,
           ervPerSqm: deal.underwritingAssumptions.ervPerSqm || deal.underwritingAssumptions.rentPerSqm,
-          units: [], debtInstruments: [], covenants: [], cashFlows: [], documents: deal.documents, capexProjects: [],
-          completenessScore: 40,
+          units: (deal.units || []).map(u => ({ ...u, assetId: newAsset.id })),
+          debtInstruments: [], covenants: [], cashFlows: [], documents: deal.documents, capexProjects: [],
+          completenessScore: (deal.units || []).length > 0 ? 60 : 40,
         };
         set(s => ({
           assets: [...s.assets, newAsset],
@@ -229,16 +230,27 @@ export const useStore = create<AppState>()(
       transferToDevelopment: (dealId) => {
         const deal = get().deals.find(d => d.id === dealId);
         if (!deal) return;
+        const newDevId = `dev-${Date.now()}`;
         const newDev: DevelopmentProject = {
-          id: `dev-${Date.now()}`, dealId, name: deal.name, address: deal.address, city: deal.city, zip: deal.zip,
-          usageType: deal.usageType, developmentType: 'Modernisierung', status: 'Planung',
+          id: newDevId, dealId, name: deal.name, address: deal.address, city: deal.city, zip: deal.zip,
+          usageType: deal.usageType,
+          developmentType: deal.developmentType || 'Modernisierung',
+          status: 'Planung',
           totalArea: deal.totalArea || deal.underwritingAssumptions.area,
-          startDate: new Date().toISOString().split('T')[0],
-          plannedEndDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * 2).toISOString().split('T')[0],
+          startDate: deal.underwritingAssumptions.startDate || new Date().toISOString().split('T')[0],
+          plannedEndDate: deal.underwritingAssumptions.plannedEndDate
+            || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * ((deal.estimatedDevDuration || 24) / 12)).toISOString().split('T')[0],
           purchasePrice: deal.underwritingAssumptions.purchasePrice,
-          totalBudget: deal.underwritingAssumptions.initialCapex,
-          gewerke: [], documents: deal.documents, activityLog: [], advisorMessages: [], images: [],
-          completenessScore: 30, holdSellDecision: 'Offen',
+          totalBudget: deal.estimatedDevBudget || deal.underwritingAssumptions.initialCapex,
+          gewerke: (deal.gewerke || []).map(g => ({
+            id: g.id, developmentId: newDevId,
+            category: g.category, description: g.description,
+            underwritingBudget: g.underwritingBudget,
+            unit: 'Pauschal', quantity: 1, status: 'Offen' as const,
+          })),
+          units: (deal.units || []).map(u => ({ ...u, assetId: newDevId })),
+          documents: deal.documents, activityLog: [], advisorMessages: [], images: [],
+          completenessScore: (deal.gewerke || []).length > 0 ? 55 : 30, holdSellDecision: 'Offen',
         };
         set(s => ({
           developments: [...s.developments, newDev],
