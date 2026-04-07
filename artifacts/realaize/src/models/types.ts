@@ -201,13 +201,13 @@ export interface UnderwritingAssumptions {
   area: number; // sqm
   rentPerSqm: number; // monthly
   otherOperatingIncome: number;
-  // Extended fields
-  ervPerSqm: number;               // ERV €/m²/month (market rent after repositioning)
-  projectedAnnualRent: number;     // area × ERV × 12
-  contingencyPercent: number;      // default 10%, development only
-  startDate?: string;              // construction start (dev only)
-  plannedEndDate?: string;         // construction end (dev only)
-  marketAssumptions: MarketAssumptions;
+  // Extended fields (optional for backward compat)
+  ervPerSqm?: number;               // ERV €/m²/month (market rent after repositioning)
+  projectedAnnualRent?: number;     // area × ERV × 12
+  contingencyPercent?: number;      // default 10%, development only
+  startDate?: string;               // construction start (dev only)
+  plannedEndDate?: string;          // construction end (dev only)
+  marketAssumptions?: MarketAssumptions;
 }
 
 export interface FinancingAssumptions {

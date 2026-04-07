@@ -1979,6 +1979,65 @@ export function SettingsPage() {
           </div>
         </GlassPanel>
 
+        {/* ── Marktannahmen ── */}
+        <GlassPanel style={{ padding: 24 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#1c1c1e', marginBottom: 4 }}>
+            {lang === 'de' ? 'Marktannahmen & DCF-Parameter' : 'Market Assumptions & DCF Parameters'}
+          </div>
+          <div style={{ fontSize: 13, color: 'rgba(60,60,67,0.45)', marginBottom: 20 }}>
+            {lang === 'de'
+              ? 'Standardwerte für Exit-Cap-Rates und Mietwachstum nach Nutzungsart. Werden beim Anlegen neuer Deals und beim Überführen in den Bestand verwendet.'
+              : 'Default values for exit cap rates and rent growth by usage type. Used when creating new deals and transferring to portfolio.'}
+          </div>
+          <div style={{ marginBottom: 20 }}>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(60,60,67,0.50)', display: 'block', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  {lang === 'de' ? 'Standard-Haltedauer (Jahre)' : 'Default Holding Period (yrs)'}
+                </label>
+                <input type="number" className="input-glass" value={settings.defaultHoldingPeriod ?? 10} min={1} max={30} step={1}
+                  onChange={e => updateSettings({ defaultHoldingPeriod: parseInt(e.target.value) || 10 } as any)} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(60,60,67,0.50)', display: 'block', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  {lang === 'de' ? 'Standard-Baukostenpuffer (%)' : 'Default Contingency (%)'}
+                </label>
+                <input type="number" className="input-glass" value={settings.defaultContingencyPercent ?? 10} min={0} max={50} step={1}
+                  onChange={e => updateSettings({ defaultContingencyPercent: parseFloat(e.target.value) || 10 } as any)} />
+              </div>
+            </div>
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(60,60,67,0.50)', marginBottom: 12, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            {lang === 'de' ? 'Exit-Cap-Rate nach Nutzungsart (%)' : 'Exit Cap Rate by Usage Type (%)'}
+          </div>
+          <div className="grid grid-cols-5 gap-3 mb-6">
+            {['Wohnen', 'Büro', 'Einzelhandel', 'Logistik', 'Mixed Use'].map(ut => (
+              <div key={ut}>
+                <label style={{ fontSize: 10, fontWeight: 600, color: 'rgba(60,60,67,0.50)', display: 'block', marginBottom: 4 }}>{ut}</label>
+                <input type="number" step="0.1" className="input-glass"
+                  value={(settings.defaultExitCapRates ?? {})[ut] ?? 5.0}
+                  onChange={e => updateSettings({ defaultExitCapRates: { ...(settings.defaultExitCapRates ?? {}), [ut]: parseFloat(e.target.value) || 5 } } as any)} />
+                <div style={{ fontSize: 10, color: 'rgba(60,60,67,0.40)', marginTop: 2 }}>
+                  = {(100 / ((settings.defaultExitCapRates ?? {})[ut] || 5)).toFixed(1)}x
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(60,60,67,0.50)', marginBottom: 12, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            {lang === 'de' ? 'ERV-Wachstum nach Nutzungsart (% p.a.)' : 'ERV Growth Rate by Usage Type (% p.a.)'}
+          </div>
+          <div className="grid grid-cols-5 gap-3">
+            {['Wohnen', 'Büro', 'Einzelhandel', 'Logistik', 'Mixed Use'].map(ut => (
+              <div key={ut}>
+                <label style={{ fontSize: 10, fontWeight: 600, color: 'rgba(60,60,67,0.50)', display: 'block', marginBottom: 4 }}>{ut}</label>
+                <input type="number" step="0.1" className="input-glass"
+                  value={(settings.defaultErvGrowthRates ?? {})[ut] ?? 2.0}
+                  onChange={e => updateSettings({ defaultErvGrowthRates: { ...(settings.defaultErvGrowthRates ?? {}), [ut]: parseFloat(e.target.value) || 2 } } as any)} />
+              </div>
+            ))}
+          </div>
+        </GlassPanel>
+
         {/* ── Default Operating Costs ── */}
         <GlassPanel style={{ padding: 24 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#1c1c1e', marginBottom: 4 }}>{lang === 'de' ? 'Standard-Betriebskosten' : 'Default Operating Costs'}</div>
