@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Info, TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import type { KPIFormulaDetail } from '../../models/types';
+import type { KPIFormulaDetail } from '../models/types';
 
 // ── Glass Panel ──────────────────────────────────────────
 interface GlassPanelProps {
@@ -137,7 +137,7 @@ interface FormulaDrawerProps {
 }
 export function FormulaDrawer({ detail, onClose }: FormulaDrawerProps) {
   if (!detail) return null;
-  const statusColors = { good: '#1a7f37', warning: '#b25000', danger: '#cc1a14', neutral: '#007aff' };
+  const statusColors: Record<string, string> = { good: '#1a7f37', warning: '#b25000', danger: '#cc1a14', neutral: '#007aff' };
 
   return (
     <>
@@ -181,7 +181,7 @@ export function FormulaDrawer({ detail, onClose }: FormulaDrawerProps) {
           <div className="mb-5">
             <div style={{ fontSize: 11, color: 'rgba(60,60,67,0.50)', fontWeight: 700, letterSpacing: '0.04em', marginBottom: 10, textTransform: 'uppercase' }}>Eingangswerte</div>
             <div className="space-y-2">
-              {detail.inputs.map((inp, i) => (
+              {detail.inputs.map((inp: { label: string; value: string }, i: number) => (
                 <div key={i} className="flex justify-between items-center py-2 px-3 rounded-xl" style={{ background: 'rgba(0,0,0,0.03)', border: '1px solid rgba(0,0,0,0.05)' }}>
                   <span style={{ fontSize: 13, color: 'rgba(60,60,67,0.70)' }}>{inp.label}</span>
                   <span style={{ fontSize: 13, color: '#1c1c1e', fontWeight: 600, fontFamily: 'ui-monospace, monospace' }}>{inp.value}</span>

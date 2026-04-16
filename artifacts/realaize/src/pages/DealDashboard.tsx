@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, CheckCircle, AlertTriangle, FileText, Download,
   Edit3, Save, X, ChevronRight, Bot, Clock, Upload,
-  Zap, Info, TrendingUp, TrendingDown, ExternalLink, Plus, Trash2
+  Zap, Info, TrendingUp, TrendingDown, ExternalLink, Plus, Trash2, HardHat
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import {
@@ -16,12 +16,14 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { exportInvestmentMemoPDF, exportDealExcel } from '../utils/exportUtils';
 import ImageManager, { TitleImageDisplay } from '../components/ImageManager';
 import { useLanguage } from '../i18n/LanguageContext';
-import type { KPIFormulaDetail, ActivityEntry } from '../models/types';
+import { AcquisitionWizard } from './AcquisitionWizard';
+import type { KPIFormulaDetail, ActivityEntry, PropertyData } from '../models/types';
+import { createDefaultPropertyData } from '../models/types';
 
 export default function DealDashboard() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { deals, updateDeal, deleteDeal, transferToBestand, transferToDevelopment, addActivityToDeal, addAuditEntry } = useStore();
+  const { deals, updateDeal, deleteDeal, transferToBestand, transferToDevelopment, addActivityToDeal, addAuditEntry, updateDealPropertyData } = useStore();
   const { t, lang } = useLanguage();
   const dateLocale = lang === 'de' ? 'de-DE' : 'en-GB';
   const deal = deals.find(d => d.id === id);
@@ -31,6 +33,7 @@ export default function DealDashboard() {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [showDevModal, setShowDevModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showWizardEdit, setShowWizardEdit] = useState(false);
   const [editingUW, setEditingUW] = useState(false);
   const [editingFin, setEditingFin] = useState(false);
   const [uwEdit, setUwEdit] = useState<any>(null);
@@ -146,11 +149,23 @@ export default function DealDashboard() {
             <Download size={14} /> Excel
           </button>
           <button
-            onClick={() => setShowDevModal(true)}
+            onClick={() => setShowWizardEdit(true)}
             className="btn-glass px-4 py-2 rounded-xl text-sm flex items-center gap-2"
-            style={{ color: '#b25000', borderColor: 'rgba(255,149,0,0.3)' }}
+            style={{ color: '#6b4c10', borderColor: 'rgba(201,169,110,0.3)' }}
           >
-            <Edit3 size={14} /> In Development
+            <Edit3 size={14} /> Underwriting bearbeiten
+          </button>
+          <button
+            onClick={() => setShowDevModal(true)}
+            style={{
+              background: 'linear-gradient(135deg, #c9a96e, #a08040)',
+              border: 'none', borderRadius: 12, padding: '8px 18px',
+              cursor: 'pointer', fontSize: 13, fontWeight: 700,
+              color: '#fff', display: 'flex', alignItems: 'center', gap: 6,
+              boxShadow: '0 2px 8px rgba(160,128,64,0.35)',
+            }}
+          >
+            <HardHat size={14} /> In Development
           </button>
           <button
             onClick={() => setShowTransferModal(true)}
@@ -810,6 +825,39 @@ export default function DealDashboard() {
             <p style={{ color: 'rgba(60,60,67,0.45)', fontSize: 13 }}>Diese Aktion kann nicht rückgängig gemacht werden.</p>
           </div>
         </Modal>
+      )}
+
+      {/* AcquisitionWizard Edit */}
+      {showWizardEdit && (
+        <AcquisitionWizard
+          initialData={deal.propertyData || createDefaultPropertyData({
+            name: deal.name, address: deal.address, city: deal.city, zip: deal.zip,
+            usageType: deal.usageType, dealType: deal.dealType || 'Investment',
+            purchasePrice: deal.underwritingAssumptions.purchasePrice,
+            vendor: deal.vendorName || '', broker: deal.broker || '',
+          })}
+          onSave={(pd: PropertyData) => {
+            updateDealPropertyData(deal.id, pd);
+            updateDeal(deal.id, {
+              name: pd.name || deal.name,
+              askingPrice: pd.purchasePrice,
+              underwritingAssumptions: {
+                ...deal.underwritingAssumptions,
+                purchasePrice: pd.purchasePrice,
+                annualGrossRent: pd.unitsAsIs.reduce((s, u) => s + u.monthlyRent, 0) * 12,
+                area: pd.unitsAsIs.reduce((s, u) => s + u.area, 0),
+                vacancyRatePercent: pd.operatingCosts.vacancyRatePercent,
+                managementCostPercent: pd.operatingCosts.managementCostPercent,
+                maintenanceReservePerSqm: pd.operatingCosts.maintenanceReservePerSqm,
+              },
+              propertyData: pd,
+              updatedAt: new Date().toISOString(),
+            });
+            setShowWizardEdit(false);
+          }}
+          onClose={() => setShowWizardEdit(false)}
+          title={`Underwriting bearbeiten — ${deal.name}`}
+        />
       )}
     </div>
   );

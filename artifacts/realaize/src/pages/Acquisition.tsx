@@ -10,10 +10,12 @@ import { PageHeader, StageBadge, CompletenessRing, GlassPanel, KPICard, Modal } 
 import { computeDealKPIs, formatEUR, formatPct, formatX } from '../utils/kpiEngine';
 import { computeDealCashFlow } from '../utils/propertyCashFlowModel';
 import { useLanguage } from '../i18n/LanguageContext';
+import { AcquisitionWizard } from './AcquisitionWizard';
 import type {
   AcquisitionDeal, DealType, UsageType, UnderwritingAssumptions, FinancingAssumptions,
-  GeverkCategory, Unit
+  GeverkCategory, Unit, PropertyData
 } from '../models/types';
+import { createDefaultPropertyData } from '../models/types';
 
 const STAGE_ORDER = ['Screening', 'LOI', 'Due Diligence', 'Signing', 'Closing'];
 const USAGE_TYPES: UsageType[] = ['Wohnen', 'Büro', 'Einzelhandel', 'Logistik', 'Mixed Use'];
@@ -1219,7 +1221,66 @@ export default function AcquisitionPage() {
 
   const totalVolume = deals.reduce((s, d) => s + d.askingPrice, 0);
 
-  const handleCreateDeal = (deal: AcquisitionDeal) => {
+  const handleCreateDeal = (pd: PropertyData) => {
+    const now = new Date().toISOString();
+    const dealId = `deal-${Date.now()}`;
+    const annualRent = pd.unitsAsIs.reduce((s, u) => s + u.monthlyRent, 0) * 12;
+    const deal: AcquisitionDeal = {
+      id: dealId,
+      name: pd.name || 'Neues Objekt',
+      address: pd.address,
+      city: pd.city,
+      zip: pd.zip,
+      usageType: pd.usageType,
+      dealType: pd.dealType,
+      stage: 'Screening',
+      askingPrice: pd.purchasePrice,
+      broker: pd.broker || undefined,
+      vendorName: pd.vendor || undefined,
+      totalArea: pd.unitsAsIs.reduce((s, u) => s + u.area, 0),
+      underwritingAssumptions: {
+        purchasePrice: pd.purchasePrice,
+        closingCostPercent: pd.acquisitionCosts.filter(c => c.active && c.id === 'grest').reduce((s, c) => s + c.percent, 0),
+        brokerFeePercent: pd.acquisitionCosts.filter(c => c.active && c.id === 'makler').reduce((s, c) => s + c.percent, 0),
+        initialCapex: 0,
+        annualGrossRent: annualRent,
+        vacancyRatePercent: pd.operatingCosts.vacancyRatePercent,
+        managementCostPercent: pd.operatingCosts.managementCostPercent,
+        maintenanceReservePerSqm: pd.operatingCosts.maintenanceReservePerSqm,
+        nonRecoverableOpex: 0,
+        area: pd.unitsAsIs.reduce((s, u) => s + u.area, 0),
+        rentPerSqm: pd.unitsAsIs.length > 0
+          ? pd.unitsAsIs.reduce((s, u) => s + u.currentRentPerSqm * u.area, 0) / Math.max(1, pd.unitsAsIs.reduce((s, u) => s + u.area, 0))
+          : 0,
+        otherOperatingIncome: pd.operatingCosts.otherIncomePerYear,
+        ervPerSqm: pd.unitsAsIs.length > 0
+          ? pd.unitsAsIs.reduce((s, u) => s + u.ervPerSqm * u.area, 0) / Math.max(1, pd.unitsAsIs.reduce((s, u) => s + u.area, 0))
+          : 0,
+        projectedAnnualRent: pd.unitsTarget.reduce((s, u) => s + u.monthlyRent, 0) * 12 || annualRent,
+        contingencyPercent: pd.contingencyPercent,
+        marketAssumptions: {
+          ervGrowthRate: pd.marketAssumptions.perUsageType[0]?.ervGrowthRatePercent ?? 2.0,
+          exitCapRate: pd.marketAssumptions.perUsageType[0]?.exitCapRatePercent ?? 5.0,
+          rentalGrowthRate: pd.marketAssumptions.perUsageType[0]?.ervGrowthRatePercent ?? 2.0,
+          holdingPeriodYears: pd.holdingPeriodYears,
+        },
+      },
+      financingAssumptions: {
+        loanAmount: pd.financingTranches.reduce((s, t) => s + t.loanAmount, 0),
+        interestRate: pd.financingTranches[0]?.interestRate ?? 4.0,
+        amortizationRate: pd.financingTranches[0]?.amortizationRate ?? 2.0,
+        loanTerm: pd.financingTranches[0]?.loanTerm ?? 10,
+        lenderName: '',
+        fixedRatePeriod: pd.financingTranches[0]?.fixedRatePeriod ?? 5,
+      },
+      documents: [],
+      activityLog: [],
+      aiRecommendations: [],
+      completenessScore: pd.unitsAsIs.length > 0 ? 70 : 40,
+      createdAt: now,
+      updatedAt: now,
+      propertyData: pd,
+    };
     addDeal(deal);
     setShowNewDeal(false);
     navigate(`/acquisition/${deal.id}`);
@@ -1268,7 +1329,13 @@ export default function AcquisitionPage() {
           <div style={{ fontSize: 15, color: 'rgba(60,60,67,0.45)' }}>{t('acq.noDeals')}</div>
         </div>
       )}
-      {showNewDeal && <NewDealWizard onClose={() => setShowNewDeal(false)} onSave={handleCreateDeal} />}
+      {showNewDeal && (
+        <AcquisitionWizard
+          onClose={() => setShowNewDeal(false)}
+          onSave={handleCreateDeal}
+          title="Neues Deal erfassen"
+        />
+      )}
     </div>
   );
 }

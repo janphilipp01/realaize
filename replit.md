@@ -97,25 +97,43 @@ Utility scripts package. Each script is a `.ts` file in `src/` with a correspond
 
 ### `artifacts/realaize` (`@workspace/realaize`)
 
-React + Vite frontend application (real estate portfolio manager "Realaize" by Lestate Real GmbH). Uses React Router, Zustand for state management, TailwindCSS, and Radix UI components. All data is frontend-only via Zustand with localStorage persistence (key: `restate-storage-v3`).
+React + Vite frontend application (real estate portfolio manager "RESTATE INVESTMENT OS" / Realaize by Lestate Real GmbH). Uses React Router, Zustand for state management, TailwindCSS. All data is frontend-only via Zustand with localStorage persistence (key: `restate-storage-v2`).
+
+**CRITICAL**: Do not change the persist key `restate-storage-v2`. Anthropic API calls must keep `anthropic-dangerous-direct-browser-access: true` and model `claude-sonnet-4-20250514`.
 
 - Entry: `src/main.tsx`
 - App: `src/App.tsx` — sets up React Router with all pages
 - Requires env vars: `PORT=5000`, `BASE_PATH=/`
 - Dev command: `PORT=5000 BASE_PATH=/ pnpm --filter @workspace/realaize run dev`
 - Language: German UI throughout
-- Store: `src/store/useStore.ts` — Zustand with persist (v3 key)
-- Types: `src/models/types.ts` — all domain types
+- Store: `src/store/useStore.ts` — Zustand with persist (v2 key)
+- Types: `src/models/types.ts` — all domain types (fully extended)
 - Mock data: `src/data/mockData.ts` — 3 assets, 2+ developments, 3 sales, 22 contacts, news, radar listings, appointments
 - KPI engine: `src/utils/kpiEngine.ts` — NOI, LTV, DSCR calculations
+- Calc engine: `src/utils/propertyCashFlowModel.ts` — `pd*` functions for PropertyData-based DCF
+
+**Data Model (types.ts)**:
+- `PropertyData` — unified underwriting model for Acquisition→Development→Bestand flow
+- `RentRollUnit` — per-unit rent roll (isAs, isTarget, floor, usageType, area, rent, etc.)
+- `GewerkePosition` — budget line items for development projects
+- `Offer` / `Invoice` — trade offer and invoice tracking (per development)
+- `FinancingTranche` — multi-tranche financing with LTV/LTC/rate/type
+- `AcquisitionCostItem` — individual closing costs (GrunderwerbSteuer, Notar, Grundbuch, etc.)
+- Backward compat: existing mock assets use `asset.propertyData?.xxx ?? asset.xxx` pattern
 
 **Pages** (in `src/pages/`):
 - `Portfolio.tsx` — dashboard overview
 - `Assets.tsx` — asset detail with Operating Costs tab (includes `rentalGrowthRate` field)
-- `Developments.tsx` — development project tracking
+- `Developments.tsx` — development project tracking with Gewerke/Angebote/Rechnungen budget tab
 - `Sales.tsx` — sales pipeline
-- `Acquisition.tsx` — deal underwriting
-- `OtherPages.tsx` — CashFlow (10-year model), Markt, Documents, AI Copilot, Settings, News, Deal Radar
+- `Acquisition.tsx` — deal list; uses AcquisitionWizard for new deals
+- `AcquisitionWizard.tsx` — 9-tab wizard (Stammdaten, Acquisition, Rent Roll, Opex, Market, Development, Finanzierung, Cashflow, Summary); Development tab hidden for Investment deals
+- `DealDashboard.tsx` — deal detail page; "In Development" button (orange-brown gradient); "Underwriting bearbeiten" re-opens wizard
+- `OtherPages.tsx` — CashFlow (10-year model), Markt, Documents, AI Copilot, Settings (incl. Market Defaults panel), News, Deal Radar
+
+**Transfer Flow**:
+- Acquisition → Development: `transferToDevelopment(dealId)` — deep-copies `propertyData` + freezes `underwritingSnapshot`
+- Development → Bestand: `transferDevToBestand(devId)` — swaps `unitsTarget→unitsAsIs`, marks dev as `Fertiggestellt` (not deleted)
 
 **Cash Flow Page (10-Year Model)**:
 - Located in `OtherPages.tsx` → `CashFlowPage()`

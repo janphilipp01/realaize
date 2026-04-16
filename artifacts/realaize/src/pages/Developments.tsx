@@ -121,7 +121,7 @@ export function DevelopmentsPage() {
 export function DevelopmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { developments, updateDevelopment, deleteDevelopment, updateGewerk, addGewerk, deleteGewerk, addActivityToDevelopment, addDevUnit, updateDevUnit, deleteDevUnit, transferDevToBestand, transferDevToSale, contacts, settings } = useStore();
+  const { developments, updateDevelopment, deleteDevelopment, updateGewerk, addGewerk, deleteGewerk, addActivityToDevelopment, addDevUnit, updateDevUnit, deleteDevUnit, transferDevToBestand, transferDevToSale, contacts, settings, addOffer, updateOffer, deleteOffer, addInvoice, updateInvoice, deleteInvoice, updateDevelopmentPropertyData } = useStore();
   const { t, lang } = useLanguage();
   const dateLocale = lang === 'de' ? 'de-DE' : 'en-GB';
   const dev = developments.find(d => d.id === id);
@@ -685,6 +685,148 @@ export function DevelopmentDetailPage() {
               </tfoot>
             </table>
           </GlassPanel>
+
+          {/* ── Angebote ── */}
+          <div style={{ marginTop: 24 }}>
+            <div className="flex justify-between mb-3">
+              <SectionHeader title="Angebote" />
+              <button
+                onClick={() => addOffer(dev.id, {
+                  id: `offer-${Date.now()}`, gewerkId: '', gewerkCategory: 'Sonstiges',
+                  description: '', measure: '', amountNet: 0, amountGross: 0, date: new Date().toISOString().split('T')[0],
+                })}
+                className="btn-glass px-3 py-1.5 rounded-xl text-xs flex items-center gap-1"
+              >
+                <Plus size={12} /> Angebot hinzufügen
+              </button>
+            </div>
+            <GlassPanel style={{ overflow: 'hidden' }}>
+              {(dev.offers || []).length === 0 ? (
+                <div style={{ padding: '20px 16px', color: 'rgba(60,60,67,0.40)', fontSize: 13, textAlign: 'center' }}>Noch keine Angebote erfasst.</div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+                      {['Gewerk', 'Maßnahme', 'Beschreibung', 'Datum', 'Netto', 'Brutto', ''].map(h => (
+                        <th key={h} style={{ padding: '8px 10px', fontSize: 10, fontWeight: 700, color: 'rgba(60,60,67,0.45)', textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(dev.offers || []).map(o => (
+                      <tr key={o.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                        <td style={{ padding: '6px 10px' }}>
+                          <select className="input-glass" value={o.gewerkCategory} onChange={e => updateOffer(dev.id, o.id, { gewerkCategory: e.target.value })} style={{ fontSize: 11, width: 130 }}>
+                            {GEWERK_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                          </select>
+                        </td>
+                        <td style={{ padding: '6px 10px' }}>
+                          <input className="input-glass" value={o.measure} onChange={e => updateOffer(dev.id, o.id, { measure: e.target.value })} style={{ fontSize: 11, width: 100 }} />
+                        </td>
+                        <td style={{ padding: '6px 10px' }}>
+                          <input className="input-glass" value={o.description} onChange={e => updateOffer(dev.id, o.id, { description: e.target.value })} style={{ fontSize: 11, width: 140 }} />
+                        </td>
+                        <td style={{ padding: '6px 10px' }}>
+                          <input type="date" className="input-glass" value={o.date} onChange={e => updateOffer(dev.id, o.id, { date: e.target.value })} style={{ fontSize: 11, width: 120 }} />
+                        </td>
+                        <td style={{ padding: '6px 10px' }}>
+                          <input type="number" className="input-glass" value={o.amountNet || ''} onChange={e => { const net = parseFloat(e.target.value) || 0; updateOffer(dev.id, o.id, { amountNet: net, amountGross: parseFloat((net * 1.19).toFixed(2)) }); }} style={{ fontSize: 11, width: 90 }} />
+                        </td>
+                        <td style={{ padding: '6px 10px', fontWeight: 600, color: '#007aff', fontSize: 12 }}>{formatEUR(o.amountGross, true)}</td>
+                        <td style={{ padding: '6px 10px' }}>
+                          <button onClick={() => deleteOffer(dev.id, o.id)} style={{ background: 'rgba(255,59,48,0.08)', border: 'none', borderRadius: 6, cursor: 'pointer', padding: '4px 6px', display: 'flex', alignItems: 'center' }}>
+                            <Trash2 size={11} color="#cc1a14" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ borderTop: '2px solid rgba(0,0,0,0.08)', background: 'rgba(0,0,0,0.02)' }}>
+                      <td colSpan={4} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700 }}>GESAMT</td>
+                      <td style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, fontFamily: 'ui-monospace, monospace' }}>{formatEUR((dev.offers || []).reduce((s, o) => s + o.amountNet, 0), true)}</td>
+                      <td style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: '#007aff' }}>{formatEUR((dev.offers || []).reduce((s, o) => s + o.amountGross, 0), true)}</td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
+            </GlassPanel>
+          </div>
+
+          {/* ── Rechnungen ── */}
+          <div style={{ marginTop: 24 }}>
+            <div className="flex justify-between mb-3">
+              <SectionHeader title="Rechnungen" />
+              <button
+                onClick={() => addInvoice(dev.id, {
+                  id: `inv-${Date.now()}`, gewerkId: '', gewerkCategory: 'Sonstiges',
+                  measure: '', invoiceType: 'Vollzahlung', description: '',
+                  amountNet: 0, amountGross: 0, date: new Date().toISOString().split('T')[0],
+                })}
+                className="btn-glass px-3 py-1.5 rounded-xl text-xs flex items-center gap-1"
+              >
+                <Plus size={12} /> Rechnung hinzufügen
+              </button>
+            </div>
+            <GlassPanel style={{ overflow: 'hidden' }}>
+              {(dev.invoices || []).length === 0 ? (
+                <div style={{ padding: '20px 16px', color: 'rgba(60,60,67,0.40)', fontSize: 13, textAlign: 'center' }}>Noch keine Rechnungen erfasst.</div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
+                      {['Gewerk', 'Maßnahme', 'Typ', 'Beschreibung', 'Datum', 'Netto', 'Brutto', ''].map(h => (
+                        <th key={h} style={{ padding: '8px 10px', fontSize: 10, fontWeight: 700, color: 'rgba(60,60,67,0.45)', textAlign: 'left', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(dev.invoices || []).map(inv => (
+                      <tr key={inv.id} style={{ borderBottom: '1px solid rgba(0,0,0,0.04)' }}>
+                        <td style={{ padding: '6px 10px' }}>
+                          <select className="input-glass" value={inv.gewerkCategory} onChange={e => updateInvoice(dev.id, inv.id, { gewerkCategory: e.target.value })} style={{ fontSize: 11, width: 130 }}>
+                            {GEWERK_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                          </select>
+                        </td>
+                        <td style={{ padding: '6px 10px' }}>
+                          <input className="input-glass" value={inv.measure} onChange={e => updateInvoice(dev.id, inv.id, { measure: e.target.value })} style={{ fontSize: 11, width: 100 }} />
+                        </td>
+                        <td style={{ padding: '6px 10px' }}>
+                          <select className="input-glass" value={inv.invoiceType} onChange={e => updateInvoice(dev.id, inv.id, { invoiceType: e.target.value as any })} style={{ fontSize: 11, width: 110 }}>
+                            {['Anzahlung', 'Vollzahlung', 'Baufortschritt', 'Schlussrechnung'].map(t => <option key={t}>{t}</option>)}
+                          </select>
+                        </td>
+                        <td style={{ padding: '6px 10px' }}>
+                          <input className="input-glass" value={inv.description} onChange={e => updateInvoice(dev.id, inv.id, { description: e.target.value })} style={{ fontSize: 11, width: 120 }} />
+                        </td>
+                        <td style={{ padding: '6px 10px' }}>
+                          <input type="date" className="input-glass" value={inv.date} onChange={e => updateInvoice(dev.id, inv.id, { date: e.target.value })} style={{ fontSize: 11, width: 120 }} />
+                        </td>
+                        <td style={{ padding: '6px 10px' }}>
+                          <input type="number" className="input-glass" value={inv.amountNet || ''} onChange={e => { const net = parseFloat(e.target.value) || 0; updateInvoice(dev.id, inv.id, { amountNet: net, amountGross: parseFloat((net * 1.19).toFixed(2)) }); }} style={{ fontSize: 11, width: 90 }} />
+                        </td>
+                        <td style={{ padding: '6px 10px', fontWeight: 700, color: '#007aff', fontSize: 12 }}>{formatEUR(inv.amountGross, true)}</td>
+                        <td style={{ padding: '6px 10px' }}>
+                          <button onClick={() => deleteInvoice(dev.id, inv.id)} style={{ background: 'rgba(255,59,48,0.08)', border: 'none', borderRadius: 6, cursor: 'pointer', padding: '4px 6px', display: 'flex', alignItems: 'center' }}>
+                            <Trash2 size={11} color="#cc1a14" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ borderTop: '2px solid rgba(0,0,0,0.08)', background: 'rgba(0,0,0,0.02)' }}>
+                      <td colSpan={5} style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700 }}>GESAMT BEZAHLT</td>
+                      <td style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, fontFamily: 'ui-monospace, monospace' }}>{formatEUR((dev.invoices || []).reduce((s, i) => s + i.amountNet, 0), true)}</td>
+                      <td style={{ padding: '8px 10px', fontSize: 11, fontWeight: 700, fontFamily: 'ui-monospace, monospace', color: '#007aff' }}>{formatEUR((dev.invoices || []).reduce((s, i) => s + i.amountGross, 0), true)}</td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
+            </GlassPanel>
+          </div>
         </div>
       )}
 
@@ -1303,7 +1445,7 @@ export function DevelopmentDetailPage() {
                   ['Haltedauer', `${dcf.holdingPeriodYears} Jahre`],
                   ['Mietwachstum p.a.', `${ma?.rentalGrowthRate ?? 2}%`],
                   ['Exit-Cap-Rate', `${dcf.exitCapRate}%`],
-                  ['ERV €/m²/Mon', `${uw.ervPerSqm ?? '—'}`],
+                  ['ERV €/m²/Mon', `${(uw as any).ervPerSqm ?? '—'}`],
                 ].map(([l, v]) => (
                   <div key={l}>
                     <div style={{ fontSize: 10, color: 'rgba(60,60,67,0.45)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>{l}</div>

@@ -188,7 +188,7 @@ export default function Addressbook({ onClose }: AddressbookProps) {
             <ContactForm
               title="Neuer Kontakt"
               data={newContact}
-              onChange={patch => setNewContact(prev => ({ ...prev, ...patch }))}
+              onChange={patch => setNewContact((prev: any) => ({ ...prev, ...patch }))}
               onSave={handleSaveNew}
               onCancel={() => setAdding(false)}
             />

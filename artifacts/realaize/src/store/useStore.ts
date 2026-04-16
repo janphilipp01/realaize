@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Asset, AcquisitionDeal, MarketLocation, MarketBenchmark, MarketUpdateEntry, AuditLogEntry, ActivityEntry, DevelopmentProject, SaleObject, Contact, ProjectImage, GeverkPosition, BuyerLead, DailyIntelligenceReport, Document, DealRadarListing, DealRadarSearchCriteria, Appointment } from '../models/types';
+import type { Asset, AcquisitionDeal, MarketLocation, MarketBenchmark, MarketUpdateEntry, AuditLogEntry, ActivityEntry, DevelopmentProject, SaleObject, Contact, ProjectImage, GeverkPosition, BuyerLead, DailyIntelligenceReport, Document, DealRadarListing, DealRadarSearchCriteria, Appointment, PropertyData, Offer, Invoice, GewerkePosition, Unit } from '../models/types';
 import { mockAssets, mockDeals, mockMarketLocations, mockAuditLog, mockDevelopments, mockSales, mockContacts, mockNewsReports, mockDealRadarListings, mockAppointments } from '../data/mockData';
+import { DEFAULT_ACQUISITION_COSTS } from '../models/types';
 
 interface AppSettings {
   hurrleRate: number; // percent, default 15
@@ -23,6 +24,11 @@ interface AppSettings {
   defaultExitCapRates: Record<string, number>;     // % per Nutzungsart
   defaultHoldingPeriod: number;                    // years, default 10
   defaultContingencyPercent: number;               // %, default 10
+  // New market defaults
+  defaultOpexInflation: number;    // % p.a., default 2.0
+  defaultCapexInflation: number;   // % p.a., default 3.0
+  defaultSalesCostPercent: number; // %, default 1.5
+  defaultAcquisitionCosts: import('../models/types').AcquisitionCostItem[];
 }
 
 interface AppState {
@@ -64,6 +70,20 @@ interface AppState {
   deleteDevUnit: (devId: string, unitId: string) => void;
   transferDevToBestand: (devId: string) => void;
   transferDevToSale: (devId: string) => void;
+  // Offers & Invoices
+  addOffer: (devId: string, offer: Offer) => void;
+  updateOffer: (devId: string, offerId: string, patch: Partial<Offer>) => void;
+  deleteOffer: (devId: string, offerId: string) => void;
+  addInvoice: (devId: string, invoice: Invoice) => void;
+  updateInvoice: (devId: string, invoiceId: string, patch: Partial<Invoice>) => void;
+  deleteInvoice: (devId: string, invoiceId: string) => void;
+  // New Gewerke (PropertyData model)
+  addGewerkePosition: (devId: string, gw: GewerkePosition) => void;
+  updateGewerkePosition: (devId: string, gwId: string, patch: Partial<GewerkePosition>) => void;
+  deleteGewerkePosition: (devId: string, gwId: string) => void;
+  // PropertyData update
+  updateDealPropertyData: (dealId: string, pd: PropertyData) => void;
+  updateDevelopmentPropertyData: (devId: string, pd: PropertyData) => void;
 
   // Sales
   updateSale: (id: string, patch: Partial<SaleObject>) => void;
@@ -133,10 +153,14 @@ const defaultSettings: AppSettings = {
   defaultClosingCostPct: 6.5,
   defaultBrokerFeePct: 1.5,
   defaultRentalGrowthRate: 2.0,
-  defaultErvGrowthRates: { 'Wohnen': 2.0, 'Büro': 1.5, 'Einzelhandel': 1.0, 'Logistik': 2.5, 'Mixed Use': 1.8 },
-  defaultExitCapRates:   { 'Wohnen': 4.0, 'Büro': 5.0, 'Einzelhandel': 5.5, 'Logistik': 5.5, 'Mixed Use': 5.0 },
+  defaultErvGrowthRates: { 'Wohnen': 2.0, 'Büro': 1.5, 'Einzelhandel': 1.0, 'Logistik': 2.5, 'Mixed Use': 1.8, 'Lager': 1.0, 'Stellplatz': 1.0, 'Sonstiges': 1.5 },
+  defaultExitCapRates:   { 'Wohnen': 4.0, 'Büro': 5.0, 'Einzelhandel': 5.5, 'Logistik': 5.5, 'Mixed Use': 5.0, 'Lager': 6.0, 'Stellplatz': 7.0, 'Sonstiges': 6.0 },
   defaultHoldingPeriod: 10,
   defaultContingencyPercent: 10,
+  defaultOpexInflation: 2.0,
+  defaultCapexInflation: 3.0,
+  defaultSalesCostPercent: 1.5,
+  defaultAcquisitionCosts: DEFAULT_ACQUISITION_COSTS.map(c => ({ ...c })),
 };
 
 export const useStore = create<AppState>()(
@@ -231,16 +255,23 @@ export const useStore = create<AppState>()(
         const deal = get().deals.find(d => d.id === dealId);
         if (!deal) return;
         const newDevId = `dev-${Date.now()}`;
+        const now = new Date().toISOString();
+        const devPropertyData = deal.propertyData
+          ? JSON.parse(JSON.stringify(deal.propertyData))
+          : undefined;
+        const snapshot = devPropertyData
+          ? JSON.parse(JSON.stringify(devPropertyData))
+          : undefined;
         const newDev: DevelopmentProject = {
           id: newDevId, dealId, name: deal.name, address: deal.address, city: deal.city, zip: deal.zip,
           usageType: deal.usageType,
-          developmentType: deal.developmentType || 'Modernisierung',
+          developmentType: deal.developmentType || (devPropertyData?.developmentType as any) || 'Modernisierung',
           status: 'Planung',
           totalArea: deal.totalArea || deal.underwritingAssumptions.area,
-          startDate: deal.underwritingAssumptions.startDate || new Date().toISOString().split('T')[0],
+          startDate: devPropertyData?.projectStart || deal.underwritingAssumptions.startDate || new Date().toISOString().split('T')[0],
           plannedEndDate: deal.underwritingAssumptions.plannedEndDate
             || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * ((deal.estimatedDevDuration || 24) / 12)).toISOString().split('T')[0],
-          purchasePrice: deal.underwritingAssumptions.purchasePrice,
+          purchasePrice: devPropertyData?.purchasePrice || deal.underwritingAssumptions.purchasePrice,
           totalBudget: deal.estimatedDevBudget || deal.underwritingAssumptions.initialCapex,
           gewerke: (deal.gewerke || []).map(g => ({
             id: g.id, developmentId: newDevId,
@@ -251,11 +282,15 @@ export const useStore = create<AppState>()(
           units: (deal.units || []).map(u => ({ ...u, assetId: newDevId })),
           documents: deal.documents, activityLog: [], advisorMessages: [], images: [],
           completenessScore: (deal.gewerke || []).length > 0 ? 55 : 30, holdSellDecision: 'Offen',
+          propertyData: devPropertyData,
+          underwritingSnapshot: snapshot,
+          offers: [],
+          invoices: [],
         };
         set(s => ({
           developments: [...s.developments, newDev],
           deals: s.deals.filter(d => d.id !== dealId),
-          auditLog: [{ id: `audit-${Date.now()}`, action: 'In Development überführt', entityType: 'Asset', entityId: newDev.id, entityName: deal.name, user: 'M. Wagner', timestamp: new Date().toISOString(), details: `Deal "${deal.name}" in Development überführt.` }, ...s.auditLog],
+          auditLog: [{ id: `audit-${Date.now()}`, action: 'In Development überführt', entityType: 'Asset', entityId: newDev.id, entityName: deal.name, user: 'M. Wagner', timestamp: now, details: `Deal "${deal.name}" in Development überführt.` }, ...s.auditLog],
         }));
       },
 
@@ -290,11 +325,25 @@ export const useStore = create<AppState>()(
         const dev = get().developments.find(d => d.id === devId);
         if (!dev) return;
         const newAssetId = `asset-${Date.now()}`;
+        const cfg = get().settings;
+
+        // If dev has propertyData, use it with target→asIs swap
+        let assetPropertyData: PropertyData | undefined;
+        if (dev.propertyData) {
+          const pd: PropertyData = JSON.parse(JSON.stringify(dev.propertyData));
+          if (pd.unitsTarget.length > 0) {
+            pd.unitsAsIs = pd.unitsTarget;
+            pd.unitsTarget = [];
+          }
+          assetPropertyData = pd;
+        }
+
         const units = (dev.units || []).map(u => ({ ...u, assetId: newAssetId }));
-        const annualRent = units.reduce((s, u) => s + u.monthlyRent * 12, 0);
+        const annualRent = assetPropertyData
+          ? assetPropertyData.unitsAsIs.reduce((s, u) => s + u.monthlyRent, 0) * 12
+          : units.reduce((s, u) => s + u.monthlyRent * 12, 0);
         const lettedUnits = units.filter(u => u.leaseType === 'Vermietet');
         const occupancyRate = units.length > 0 ? lettedUnits.length / units.length : 0;
-        const cfg = get().settings;
         const newAsset: Asset = {
           id: newAssetId, name: dev.name, address: dev.address, city: dev.city, zip: dev.zip,
           usageType: dev.usageType, status: 'Bestand', acquisitionDate: new Date().toISOString().split('T')[0],
@@ -312,7 +361,8 @@ export const useStore = create<AppState>()(
           exitCapRate: cfg.defaultExitCapRates[dev.usageType] || 5.0,
           holdingPeriodYears: cfg.defaultHoldingPeriod,
           units, debtInstruments: [], covenants: [], cashFlows: [], documents: dev.documents, capexProjects: [],
-          completenessScore: 45,
+          completenessScore: assetPropertyData ? 70 : 45,
+          propertyData: assetPropertyData,
         };
         set(st => ({
           assets: [...st.assets, newAsset],
@@ -342,6 +392,32 @@ export const useStore = create<AppState>()(
         }));
       },
 
+      // Offers & Invoices
+      addOffer: (devId, offer) =>
+        set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, offers: [...(d.offers || []), offer] } : d) })),
+      updateOffer: (devId, offerId, patch) =>
+        set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, offers: (d.offers || []).map(o => o.id === offerId ? { ...o, ...patch } : o) } : d) })),
+      deleteOffer: (devId, offerId) =>
+        set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, offers: (d.offers || []).filter(o => o.id !== offerId) } : d) })),
+      addInvoice: (devId, invoice) =>
+        set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, invoices: [...(d.invoices || []), invoice] } : d) })),
+      updateInvoice: (devId, invoiceId, patch) =>
+        set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, invoices: (d.invoices || []).map(i => i.id === invoiceId ? { ...i, ...patch } : i) } : d) })),
+      deleteInvoice: (devId, invoiceId) =>
+        set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, invoices: (d.invoices || []).filter(i => i.id !== invoiceId) } : d) })),
+      // New Gewerke positions (PropertyData model)
+      addGewerkePosition: (devId, gw) =>
+        set(s => ({ developments: s.developments.map(d => d.id === devId && d.propertyData ? { ...d, propertyData: { ...d.propertyData, gewerke: [...d.propertyData.gewerke, gw] } } : d) })),
+      updateGewerkePosition: (devId, gwId, patch) =>
+        set(s => ({ developments: s.developments.map(d => d.id === devId && d.propertyData ? { ...d, propertyData: { ...d.propertyData, gewerke: d.propertyData.gewerke.map(g => g.id === gwId ? { ...g, ...patch } : g) } } : d) })),
+      deleteGewerkePosition: (devId, gwId) =>
+        set(s => ({ developments: s.developments.map(d => d.id === devId && d.propertyData ? { ...d, propertyData: { ...d.propertyData, gewerke: d.propertyData.gewerke.filter(g => g.id !== gwId) } } : d) })),
+      // PropertyData update
+      updateDealPropertyData: (dealId, pd) =>
+        set(s => ({ deals: s.deals.map(d => d.id === dealId ? { ...d, propertyData: pd } : d) })),
+      updateDevelopmentPropertyData: (devId, pd) =>
+        set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, propertyData: pd } : d) })),
+
       updateSale: (id, patch) =>
         set(s => ({ sales: s.sales.map(sale => sale.id === id ? { ...sale, ...patch, updatedAt: new Date().toISOString() } : sale) })),
 
@@ -365,20 +441,22 @@ export const useStore = create<AppState>()(
           city: sale.city,
           zip: sale.zip,
           usageType: sale.usageType,
+          status: 'Bestand',
+          acquisitionDate: new Date().toISOString().split('T')[0],
           currentValue: sale.askingPrice,
           purchasePrice: sale.totalCost,
           annualRent: sale.annualRent || 0,
           occupancyRate: 1,
-          area: sale.area || 0,
+          totalArea: sale.area || 0,
+          lettableArea: sale.area || 0,
+          operatingCosts: { vacancyRatePercent: 5, managementCostPercent: 3, maintenanceReservePerSqm: 8, nonRecoverableOpex: 0, otherOperatingIncome: 0, rentalGrowthRate: 2 },
+          units: [],
           debtInstruments: [],
           covenants: [],
-          leases: [],
-          capexItems: [],
+          cashFlows: [],
           documents: [],
-          activityLog: [],
-          purchaseDate: new Date().toISOString().split('T')[0],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          capexProjects: [],
+          completenessScore: 20,
         };
         set(s => ({ sales: s.sales.filter(sale => sale.id !== id), assets: [...s.assets, newAsset] }));
       },
@@ -507,7 +585,7 @@ export const useStore = create<AppState>()(
               otherOperatingIncome: 0,
             },
             financingAssumptions: { loanAmount: Math.round(listing.askingPrice * 0.65), interestRate: 4.0, amortizationRate: 2.0, loanTerm: 10, lenderName: '', fixedRatePeriod: 5 },
-            documents: [], activityLog: [{ id: `act-${Date.now()}`, date: now, type: 'Note', title: 'Aus Deal Radar übernommen', description: `Quelle: ${listing.sourceLabel}\nURL: ${listing.sourceUrl}\nAI-Notizen: ${listing.aiNotes}`, user: 'M. Wagner' }],
+            documents: [], activityLog: [{ id: `act-${Date.now()}`, timestamp: now, type: 'Note', title: 'Aus Deal Radar übernommen', description: `Quelle: ${listing.sourceLabel}\nURL: ${listing.sourceUrl}\nAI-Notizen: ${listing.aiNotes}`, user: 'M. Wagner' }],
             aiRecommendations: [], completenessScore: 25, createdAt: now, updatedAt: now,
             totalArea: listing.totalArea, broker: listing.sourceLabel,
           };

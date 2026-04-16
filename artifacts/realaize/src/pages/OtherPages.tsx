@@ -2061,6 +2061,61 @@ export function SettingsPage() {
           </div>
         </GlassPanel>
 
+        {/* ── Market Defaults (neue Felder) ── */}
+        <GlassPanel style={{ padding: 24 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#1c1c1e', marginBottom: 4 }}>
+            {t('settings.marketDefaults')}
+          </div>
+          <div style={{ fontSize: 13, color: 'rgba(60,60,67,0.45)', marginBottom: 20 }}>
+            {t('settings.marketDefaultsDesc')}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(60,60,67,0.50)', display: 'block', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                {t('settings.defaultOpexInflation')}
+              </label>
+              <div className="flex items-center gap-2">
+                <input type="number" className="input-glass" step={0.1} min={0} max={10}
+                  value={(settings as any).defaultOpexInflation ?? 2.0}
+                  onChange={e => updateSettings({ defaultOpexInflation: parseFloat(e.target.value) || 2 } as any)} />
+                <span style={{ fontSize: 13, color: 'rgba(60,60,67,0.50)' }}>{(settings as any).defaultOpexInflation ?? 2.0}%</span>
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(60,60,67,0.50)', display: 'block', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                {t('settings.defaultCapexInflation')}
+              </label>
+              <div className="flex items-center gap-2">
+                <input type="number" className="input-glass" step={0.1} min={0} max={10}
+                  value={(settings as any).defaultCapexInflation ?? 3.0}
+                  onChange={e => updateSettings({ defaultCapexInflation: parseFloat(e.target.value) || 3 } as any)} />
+                <span style={{ fontSize: 13, color: 'rgba(60,60,67,0.50)' }}>{(settings as any).defaultCapexInflation ?? 3.0}%</span>
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(60,60,67,0.50)', display: 'block', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                {t('settings.defaultSalesCostPct')}
+              </label>
+              <div className="flex items-center gap-2">
+                <input type="number" className="input-glass" step={0.1} min={0} max={10}
+                  value={(settings as any).defaultSalesCostPercent ?? 1.5}
+                  onChange={e => updateSettings({ defaultSalesCostPercent: parseFloat(e.target.value) || 1.5 } as any)} />
+                <span style={{ fontSize: 13, color: 'rgba(60,60,67,0.50)' }}>{(settings as any).defaultSalesCostPercent ?? 1.5}%</span>
+              </div>
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: 'rgba(60,60,67,0.50)', display: 'block', marginBottom: 6, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                {t('settings.defaultAcquisitionCosts')}
+              </label>
+              <div style={{ fontSize: 13, color: 'rgba(60,60,67,0.55)', paddingTop: 6 }}>
+                {lang === 'de'
+                  ? 'Grunderwerbsteuer, Notar, Grundbuch — per Deal anpassbar im Acquisition Wizard.'
+                  : 'Land transfer tax, notary, land register — adjustable per deal in the Acquisition Wizard.'}
+              </div>
+            </div>
+          </div>
+        </GlassPanel>
+
         {/* ── Static info panels ── */}
         {[
           { title: 'Covenant Settings', desc: lang === 'de' ? 'Schwellenwerte für automatische Warnungen und Breach-Alerts.' : 'Thresholds for automatic warnings and breach alerts.', items: ['Warning buffer: 5%', 'Check frequency: Quarterly', 'Notification: Portfolio Manager'] },

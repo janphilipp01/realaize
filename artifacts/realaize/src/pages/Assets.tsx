@@ -13,7 +13,7 @@ import { computePropertyCashFlow } from '../utils/propertyCashFlowModel';
 import ImageManager, { TitleImageDisplay } from '../components/ImageManager';
 import DocumentUpload from '../components/DocumentUpload';
 import { useLanguage } from '../i18n/LanguageContext';
-import type { Asset } from '../models/types';
+import type { Asset, AssetOperatingCosts } from '../models/types';
 
 // ─── Assets List Page ─────────────────────────────────────────────────────────
 export function AssetsPage() {
@@ -155,7 +155,7 @@ export function AssetDetailPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingOpCosts, setEditingOpCosts] = useState(false);
-  const [opCostEdits, setOpCostEdits] = useState(asset?.operatingCosts ?? {});
+  const [opCostEdits, setOpCostEdits] = useState<AssetOperatingCosts>(asset?.operatingCosts ?? { vacancyRatePercent: 5, managementCostPercent: 3, maintenanceReservePerSqm: 8, nonRecoverableOpex: 0, otherOperatingIncome: 0, rentalGrowthRate: 2 });
   const [dcfExitCap, setDcfExitCap] = useState<number | null>(null);
   const [dcfHolding, setDcfHolding] = useState<number | null>(null);
 

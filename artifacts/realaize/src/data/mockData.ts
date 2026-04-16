@@ -793,7 +793,7 @@ export const mockSales: SaleObject[] = [
       { id: 'sale-doc-001', assetId: 'sale-001', name: 'Exposé Hafenviertel.pdf', category: 'Sonstiges', uploadDate: '2024-12-01', fileSize: '4.5 MB', tags: ['Exposé', 'Verkauf'], uploadedBy: 'M. Wagner' },
     ],
     buyers: [
-      { id: 'buyer-001', saleId: 'sale-001', name: 'Klaus Bergmann', company: 'Logistics RE Fund', email: 'k.bergmann@logfund.de', phone: '+49 40 1234567', dealType: 'Investment',
+      { id: 'buyer-001', saleId: 'sale-001', name: 'Klaus Bergmann', company: 'Logistics RE Fund', email: 'k.bergmann@logfund.de', phone: '+49 40 1234567',
     stage: 'Due Diligence', offeredPrice: 26_800_000, notes: 'Sehr ernsthafter Interessent. DD läuft seit 01.12.', lastContact: '2024-12-18', createdAt: '2024-11-15' },
       { id: 'buyer-002', saleId: 'sale-001', name: 'Sarah Müller', company: 'Industriepark GmbH', email: 's.mueller@ipgmbh.de', stage: 'NDA', notes: 'NDA unterzeichnet. Besichtigung geplant.', lastContact: '2024-12-10', createdAt: '2024-12-05' },
     ],
