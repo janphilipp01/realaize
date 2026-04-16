@@ -2,239 +2,7 @@
 
 export type UsageType = 'Wohnen' | 'Büro' | 'Einzelhandel' | 'Logistik' | 'Mixed Use';
 export type AssetStatus = 'Bestand' | 'Acquisition' | 'Disposed';
-export type DealStage = 'Screening' | 'Due Diligence' | 'Verhandlung' | 'Beurkundung';
-
-// ─── PropertyData System — New Unified Data Model ────────────────────────────
-
-export type FloorLevel = 'TG' | 'KG' | 'EG' | '1.OG' | '2.OG' | '3.OG' | '4.OG' | '5.OG' | '6.OG' | 'DG';
-
-export interface AcquisitionCostItem {
-  id: string;
-  name: string;
-  percent: number;
-  active: boolean;
-}
-
-export interface RentRollUnit {
-  id: string;
-  unitNumber: string;
-  floor: FloorLevel;
-  area: number;
-  usageType: 'Wohnen' | 'Büro' | 'Einzelhandel' | 'Lager' | 'Stellplatz' | 'Sonstiges';
-  tenant: string;
-  leaseStart: string;
-  leaseEnd: string;
-  currentRentPerSqm: number;
-  ervPerSqm: number;
-  monthlyRent: number;
-  indexationInterval: 'jährlich' | 'alle 2 Jahre' | 'alle 3 Jahre' | 'keine';
-  indexationRate: number;
-  nonRecoverableOpex: number;
-  sourceUnitId?: string;
-}
-
-export interface PropertyOperatingCosts {
-  vacancyRatePercent: number;
-  managementCostPercent: number;
-  maintenanceReservePerSqm: number;
-  insurancePerYear: number;
-  propertyTaxPerYear: number;
-  otherOpexPerYear: number;
-  otherIncomePerYear: number;
-}
-
-export interface MarketAssumptionPerUsage {
-  usageType: string;
-  ervFromRentRoll: number;
-  ervGrowthRatePercent: number;
-  exitCapRatePercent: number;
-  exitMultiplier: number;
-  aiSuggested?: boolean;
-}
-
-export interface PropertyMarketAssumptions {
-  perUsageType: MarketAssumptionPerUsage[];
-  opexInflationPercent: number;
-  capexInflationPercent: number;
-  salesCostPercent: number;
-  opexInflationAiSuggested?: boolean;
-  capexInflationAiSuggested?: boolean;
-}
-
-export type CostDistribution = 'vorauszahlung' | 'linear' | '30-40-30' | 'endfällig';
-
-export interface GewerkePosition {
-  id: string;
-  category: string;
-  description: string;
-  budgetInputMode: 'pauschal' | 'per_sqm';
-  budgetAmount: number;
-  budgetTotal: number;
-  costPerSqm: number;
-  startWeek: number;
-  durationWeeks: number;
-  endWeek: number;
-  costDistribution: CostDistribution;
-  status: 'Geplant' | 'Beauftragt' | 'Laufend' | 'Abgeschlossen';
-  offerTotal?: number;
-  invoiceTotal?: number;
-  contractAmount?: number;
-}
-
-export type OfferStatus = 'Eingegangen' | 'In Prüfung' | 'Beauftragt' | 'Abgelehnt' | 'Abgeschlossen';
-
-export interface Offer {
-  id: string;
-  gewerkId: string;
-  contractor: string;
-  submittedAt: string;          // ISO date string
-  totalAmount: number;          // gross total
-  status: OfferStatus;
-  notes?: string;
-  // optional detail fields
-  gewerkCategory?: string;
-  description?: string;
-  measure?: string;
-  amountNet?: number;
-  amountGross?: number;
-}
-
-export type InvoiceType = 'Anzahlung' | 'Vollzahlung' | 'Baufortschritt' | 'Schlussrechnung';
-export type InvoiceStatus = 'Offen' | 'Fällig' | 'Bezahlt' | 'Storniert';
-
-export interface Invoice {
-  id: string;
-  gewerkId: string;
-  contractor: string;
-  invoiceNumber: string;
-  invoiceDate: string;
-  dueDate: string;
-  totalAmount: number;
-  status: InvoiceStatus;
-  notes?: string;
-  // optional detail fields
-  gewerkCategory?: string;
-  measure?: string;
-  invoiceType?: InvoiceType;
-  description?: string;
-  amountNet?: number;
-  amountGross?: number;
-}
-
-export type FinancingType = 'Bankdarlehen' | 'Mezzanine' | 'Privates Darlehen' | 'Gesellschafterdarlehen';
-export type RepaymentType = 'Annuität' | 'Endfällig';
-
-export interface FinancingTranche {
-  id: string;
-  name: string;
-  financingType: FinancingType;
-  loanAmount: number;
-  interestRate: number;
-  fixedRatePeriod: number;
-  loanTerm: number;
-  repaymentType: RepaymentType;
-  amortizationRate: number;
-}
-
-export interface PropertyData {
-  name: string;
-  address: string;
-  city: string;
-  zip: string;
-  usageType: UsageType;
-  dealType: DealType;
-  developmentType?: string;
-  floors: FloorLevel[];
-  vendor: string;
-  broker: string;
-  purchasePrice: number;
-  acquisitionCosts: AcquisitionCostItem[];
-  acquisitionDate: string;
-  unitsAsIs: RentRollUnit[];
-  unitsTarget: RentRollUnit[];
-  operatingCosts: PropertyOperatingCosts;
-  marketAssumptions: PropertyMarketAssumptions;
-  gewerke: GewerkePosition[];
-  projectStart: string;
-  contingencyPercent: number;
-  financingTranches: FinancingTranche[];
-  holdingPeriodYears: number;
-}
-
-export const DEFAULT_ACQUISITION_COSTS: AcquisitionCostItem[] = [
-  { id: 'grest', name: 'Grunderwerbsteuer', percent: 6.0, active: true },
-  { id: 'makler', name: 'Makler', percent: 1.5, active: true },
-  { id: 'notar', name: 'Notar', percent: 1.5, active: true },
-  { id: 'grundbuch', name: 'Grundbuch', percent: 0.5, active: true },
-  { id: 'sonstige', name: 'Sonstiges', percent: 0.0, active: false },
-];
-
-export const DEFAULT_GEWERKE_CATEGORIES = [
-  'Rohbau', 'Fassade', 'Dach', 'Haustechnik / TGA', 'Elektro',
-  'Sanitär', 'Heizung / Klima', 'Aufzüge', 'Innenausbau',
-  'Außenanlagen', 'Planung / Architektur', 'Statik',
-  'Bauüberwachung', 'Genehmigungen', 'Versicherung', 'Sonstiges',
-];
-
-export const DEFAULT_MARKET_ASSUMPTIONS: PropertyMarketAssumptions = {
-  perUsageType: [],
-  opexInflationPercent: 2.5,
-  capexInflationPercent: 3.0,
-  salesCostPercent: 1.5,
-};
-
-export function getDefaultErvGrowth(usageType: string): number {
-  const defaults: Record<string, number> = {
-    'Wohnen': 2.0, 'Büro': 1.5, 'Einzelhandel': 1.0,
-    'Logistik': 2.5, 'Mixed Use': 1.8, 'Lager': 1.0,
-    'Stellplatz': 1.0, 'Sonstiges': 1.5,
-  };
-  return defaults[usageType] ?? 1.5;
-}
-
-export function getDefaultExitCapRate(usageType: string): number {
-  const defaults: Record<string, number> = {
-    'Wohnen': 4.0, 'Büro': 5.0, 'Einzelhandel': 5.5,
-    'Logistik': 5.5, 'Mixed Use': 5.0, 'Lager': 6.0,
-    'Stellplatz': 7.0, 'Sonstiges': 6.0,
-  };
-  return defaults[usageType] ?? 5.0;
-}
-
-export function createDefaultPropertyData(overrides?: Partial<PropertyData>): PropertyData {
-  return {
-    name: '',
-    address: '',
-    city: '',
-    zip: '',
-    usageType: 'Wohnen',
-    dealType: 'Investment',
-    floors: ['EG', '1.OG', '2.OG'],
-    vendor: '',
-    broker: '',
-    purchasePrice: 0,
-    acquisitionCosts: DEFAULT_ACQUISITION_COSTS.map(c => ({ ...c })),
-    acquisitionDate: new Date().toISOString().split('T')[0],
-    unitsAsIs: [],
-    unitsTarget: [],
-    operatingCosts: {
-      vacancyRatePercent: 5.0,
-      managementCostPercent: 3.0,
-      maintenanceReservePerSqm: 10.0,
-      insurancePerYear: 0,
-      propertyTaxPerYear: 0,
-      otherOpexPerYear: 0,
-      otherIncomePerYear: 0,
-    },
-    marketAssumptions: { ...DEFAULT_MARKET_ASSUMPTIONS, perUsageType: [] },
-    gewerke: [],
-    projectStart: new Date().toISOString().split('T')[0],
-    contingencyPercent: 10,
-    financingTranches: [],
-    holdingPeriodYears: 10,
-    ...overrides,
-  };
-}
+export type DealStage = 'Screening' | 'LOI' | 'Due Diligence' | 'Signing' | 'Closing';
 export type CovenantStatus = 'OK' | 'Warning' | 'Breach';
 export type DocumentCategory = 'Kaufvertrag' | 'Mietvertrag' | 'Finanzierung' | 'Gutachten' | 'Due Diligence' | 'IC Memo' | 'Sonstiges';
 export type RecommendationType = 'Miete' | 'Kaufpreis' | 'Finanzierung' | 'Allgemein';
@@ -270,8 +38,6 @@ export interface Asset {
   exitCapRate?: number;        // % e.g. 5.0 — used for terminal value in cashflow model
   holdingPeriodYears?: number; // default 10
   ervPerSqm?: number;          // ERV €/m²/month
-  // Unified property data (optional for backward compat with mock assets)
-  propertyData?: PropertyData;
 }
 
 // Operating costs per asset — mirrors underwriting structure
@@ -398,22 +164,21 @@ export interface AcquisitionDeal {
   marketLocationId?: string;
   // Extended property data (Investment)
   yearBuilt?: number;
+  floors?: number;
   parkingSpaces?: number;
   lettableArea?: number;
   acquisitionDate?: string;
   units?: Unit[];
   // Development-specific fields (only when dealType === 'Development')
   developmentType?: 'Neubau' | 'Kernsanierung' | 'Modernisierung' | 'Umbau' | 'Aufstockung' | 'Anbau';
-  estimatedDevBudget?: number;
-  estimatedDevDuration?: number;
-  projectedRentAfterDev?: number;
+  estimatedDevBudget?: number;  // total construction budget
+  estimatedDevDuration?: number; // months
+  projectedRentAfterDev?: number; // annual rent after completion
   startDate?: string;
   plannedEndDate?: string;
   gewerke?: Array<{ id: string; category: GeverkCategory; description: string; underwritingBudget: number }>;
   debtAssumptions?: DevDebtAssumptions;
   valuationAssumptions?: DevValuationAssumptions;
-  // Unified property data (new wizard-created deals have this; legacy mock deals may not)
-  propertyData?: PropertyData;
 }
 
 export interface MarketAssumptions {
@@ -638,11 +403,6 @@ export interface DevelopmentProject {
   sellIRR?: number;
   debtAssumptions?: DevDebtAssumptions;
   valuationAssumptions?: DevValuationAssumptions;
-  // Unified property data
-  propertyData?: PropertyData;
-  underwritingSnapshot?: PropertyData;
-  offers?: Offer[];
-  invoices?: Invoice[];
 }
 
 export interface DevDebtAssumptions {

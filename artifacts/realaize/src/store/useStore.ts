@@ -1,31 +1,28 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Asset, AcquisitionDeal, MarketLocation, MarketBenchmark, MarketUpdateEntry, AuditLogEntry, ActivityEntry, DevelopmentProject, SaleObject, Contact, ProjectImage, GeverkPosition, BuyerLead, DailyIntelligenceReport, Document, DealRadarListing, DealRadarSearchCriteria, Appointment, Offer, Invoice, PropertyData } from '../models/types';
-import { createDefaultPropertyData, DEFAULT_ACQUISITION_COSTS } from '../models/types';
+import type { Asset, AcquisitionDeal, MarketLocation, MarketBenchmark, MarketUpdateEntry, AuditLogEntry, ActivityEntry, DevelopmentProject, SaleObject, Contact, ProjectImage, GeverkPosition, BuyerLead, DailyIntelligenceReport, Document, DealRadarListing, DealRadarSearchCriteria, Appointment } from '../models/types';
 import { mockAssets, mockDeals, mockMarketLocations, mockAuditLog, mockDevelopments, mockSales, mockContacts, mockNewsReports, mockDealRadarListings, mockAppointments } from '../data/mockData';
 
 interface AppSettings {
-  hurrleRate: number;
-  taxRate: number;
+  hurrleRate: number; // percent, default 15
+  taxRate: number; // percent, default 25
   advisorLanguage: 'de' | 'en';
   minDSCR: number;
   maxLTV: number;
   targetNIY: number;
-  defaultExitMultiplier: number;
-  defaultVacancyRate: number;
-  defaultMgmtCostPct: number;
-  defaultMaintenancePerSqm: number;
-  defaultClosingCostPct: number;
-  defaultBrokerFeePct: number;
-  defaultRentalGrowthRate: number;
-  defaultErvGrowthRates: Record<string, number>;
-  defaultExitCapRates: Record<string, number>;
-  defaultHoldingPeriod: number;
-  defaultContingencyPercent: number;
-  // New PropertyData defaults
-  defaultOpexInflationPercent: number;
-  defaultCapexInflationPercent: number;
-  defaultSalesCostPercent: number;
+  defaultExitMultiplier: number; // e.g. 18 for 18x NOI terminal value
+  // Default Operating Costs for new assets
+  defaultVacancyRate: number;     // %, default 5
+  defaultMgmtCostPct: number;     // %, default 3
+  defaultMaintenancePerSqm: number; // €/m²/yr, default 10
+  defaultClosingCostPct: number;  // %, default 6.5
+  defaultBrokerFeePct: number;    // %, default 1.5
+  defaultRentalGrowthRate: number; // % p.a., default 2.0
+  // Market assumptions (per usage type)
+  defaultErvGrowthRates: Record<string, number>;  // % p.a. per Nutzungsart
+  defaultExitCapRates: Record<string, number>;     // % per Nutzungsart
+  defaultHoldingPeriod: number;                    // years, default 10
+  defaultContingencyPercent: number;               // %, default 10
 }
 
 interface AppState {
@@ -67,17 +64,6 @@ interface AppState {
   deleteDevUnit: (devId: string, unitId: string) => void;
   transferDevToBestand: (devId: string) => void;
   transferDevToSale: (devId: string) => void;
-  // Offers
-  addOffer: (devId: string, offer: Offer) => void;
-  updateOffer: (devId: string, offerId: string, patch: Partial<Offer>) => void;
-  deleteOffer: (devId: string, offerId: string) => void;
-  // Invoices
-  addInvoice: (devId: string, invoice: Invoice) => void;
-  updateInvoice: (devId: string, invoiceId: string, patch: Partial<Invoice>) => void;
-  deleteInvoice: (devId: string, invoiceId: string) => void;
-  // PropertyData
-  updateDealPropertyData: (dealId: string, patch: Partial<PropertyData>) => void;
-  updateDevPropertyData: (devId: string, patch: Partial<PropertyData>) => void;
 
   // Sales
   updateSale: (id: string, patch: Partial<SaleObject>) => void;
@@ -151,9 +137,6 @@ const defaultSettings: AppSettings = {
   defaultExitCapRates:   { 'Wohnen': 4.0, 'Büro': 5.0, 'Einzelhandel': 5.5, 'Logistik': 5.5, 'Mixed Use': 5.0 },
   defaultHoldingPeriod: 10,
   defaultContingencyPercent: 10,
-  defaultOpexInflationPercent: 2.5,
-  defaultCapexInflationPercent: 3.0,
-  defaultSalesCostPercent: 1.5,
 };
 
 export const useStore = create<AppState>()(
@@ -248,13 +231,6 @@ export const useStore = create<AppState>()(
         const deal = get().deals.find(d => d.id === dealId);
         if (!deal) return;
         const newDevId = `dev-${Date.now()}`;
-        const pdSnap = deal.propertyData
-          ? JSON.parse(JSON.stringify(deal.propertyData)) as PropertyData
-          : createDefaultPropertyData({
-              name: deal.name, address: deal.address, city: deal.city, zip: deal.zip,
-              usageType: deal.usageType, dealType: deal.dealType,
-              purchasePrice: deal.underwritingAssumptions.purchasePrice,
-            });
         const newDev: DevelopmentProject = {
           id: newDevId, dealId, name: deal.name, address: deal.address, city: deal.city, zip: deal.zip,
           usageType: deal.usageType,
@@ -275,10 +251,6 @@ export const useStore = create<AppState>()(
           units: (deal.units || []).map(u => ({ ...u, assetId: newDevId })),
           documents: deal.documents, activityLog: [], advisorMessages: [], images: [],
           completenessScore: (deal.gewerke || []).length > 0 ? 55 : 30, holdSellDecision: 'Offen',
-          propertyData: pdSnap,
-          underwritingSnapshot: JSON.parse(JSON.stringify(pdSnap)),
-          offers: [],
-          invoices: [],
         };
         set(s => ({
           developments: [...s.developments, newDev],
@@ -313,38 +285,6 @@ export const useStore = create<AppState>()(
 
       deleteDevUnit: (devId, unitId) =>
         set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, units: (d.units || []).filter(u => u.id !== unitId) } : d) })),
-
-      addOffer: (devId, offer) =>
-        set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, offers: [...(d.offers || []), offer] } : d) })),
-
-      updateOffer: (devId, offerId, patch) =>
-        set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, offers: (d.offers || []).map(o => o.id === offerId ? { ...o, ...patch } : o) } : d) })),
-
-      deleteOffer: (devId, offerId) =>
-        set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, offers: (d.offers || []).filter(o => o.id !== offerId) } : d) })),
-
-      addInvoice: (devId, invoice) =>
-        set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, invoices: [...(d.invoices || []), invoice] } : d) })),
-
-      updateInvoice: (devId, invoiceId, patch) =>
-        set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, invoices: (d.invoices || []).map(i => i.id === invoiceId ? { ...i, ...patch } : i) } : d) })),
-
-      deleteInvoice: (devId, invoiceId) =>
-        set(s => ({ developments: s.developments.map(d => d.id === devId ? { ...d, invoices: (d.invoices || []).filter(i => i.id !== invoiceId) } : d) })),
-
-      updateDealPropertyData: (dealId, patch) =>
-        set(s => ({
-          deals: s.deals.map(d => d.id === dealId
-            ? { ...d, propertyData: d.propertyData ? { ...d.propertyData, ...patch } : createDefaultPropertyData(patch), updatedAt: new Date().toISOString() }
-            : d),
-        })),
-
-      updateDevPropertyData: (devId, patch) =>
-        set(s => ({
-          developments: s.developments.map(d => d.id === devId
-            ? { ...d, propertyData: d.propertyData ? { ...d.propertyData, ...patch } : createDefaultPropertyData(patch) }
-            : d),
-        })),
 
       transferDevToBestand: (devId) => {
         const dev = get().developments.find(d => d.id === devId);
@@ -570,16 +510,6 @@ export const useStore = create<AppState>()(
             documents: [], activityLog: [{ id: `act-${Date.now()}`, date: now, type: 'Note', title: 'Aus Deal Radar übernommen', description: `Quelle: ${listing.sourceLabel}\nURL: ${listing.sourceUrl}\nAI-Notizen: ${listing.aiNotes}`, user: 'M. Wagner' }],
             aiRecommendations: [], completenessScore: 25, createdAt: now, updatedAt: now,
             totalArea: listing.totalArea, broker: listing.sourceLabel,
-            propertyData: createDefaultPropertyData({
-              name: listing.title,
-              address: listing.address,
-              city: listing.city,
-              zip: listing.zip,
-              usageType: listing.usageType,
-              dealType: 'Investment',
-              purchasePrice: listing.askingPrice,
-              holdingPeriodYears: s.settings.defaultHoldingPeriod,
-            }),
           };
           return {
             deals: [...s.deals, newDeal],
@@ -599,7 +529,7 @@ export const useStore = create<AppState>()(
       resetToMockData: () => set({ assets: mockAssets, deals: mockDeals, developments: mockDevelopments, sales: mockSales, contacts: mockContacts, appointments: mockAppointments, images: [], marketLocations: mockMarketLocations, auditLog: mockAuditLog, newsReports: mockNewsReports, dealRadarListings: mockDealRadarListings, dealRadarCriteria: { cities: ['Berlin', 'München', 'Hamburg', 'Frankfurt am Main', 'Düsseldorf'], usageTypes: ['Wohnen', 'Büro', 'Logistik'], priceMin: 2_000_000, priceMax: 50_000_000, minArea: 500, maxArea: 50_000 }, settings: defaultSettings }),
     }),
     {
-      name: 'restate-storage-v4',
+      name: 'restate-storage-v3',
       partialize: (s) => ({ assets: s.assets, deals: s.deals, developments: s.developments, sales: s.sales, contacts: s.contacts, appointments: s.appointments, images: s.images, marketLocations: s.marketLocations, auditLog: s.auditLog, newsReports: s.newsReports, dealRadarListings: s.dealRadarListings, dealRadarCriteria: s.dealRadarCriteria, settings: s.settings }),
     }
   )

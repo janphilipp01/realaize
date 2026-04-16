@@ -97,40 +97,25 @@ Utility scripts package. Each script is a `.ts` file in `src/` with a correspond
 
 ### `artifacts/realaize` (`@workspace/realaize`)
 
-React + Vite frontend application (real estate portfolio manager "Realaize" by Lestate Real GmbH). Uses React Router, Zustand for state management, TailwindCSS, and Radix UI components. All data is frontend-only via Zustand with localStorage persistence (key: `restate-storage-v4`).
+React + Vite frontend application (real estate portfolio manager "Realaize" by Lestate Real GmbH). Uses React Router, Zustand for state management, TailwindCSS, and Radix UI components. All data is frontend-only via Zustand with localStorage persistence (key: `restate-storage-v3`).
 
 - Entry: `src/main.tsx`
 - App: `src/App.tsx` — sets up React Router with all pages
 - Requires env vars: `PORT=5000`, `BASE_PATH=/`
 - Dev command: `PORT=5000 BASE_PATH=/ pnpm --filter @workspace/realaize run dev`
 - Language: German UI throughout
-- Store: `src/store/useStore.ts` — Zustand with persist (key: `restate-storage-v4`)
-- Types: `src/models/types.ts` — all domain types including unified `PropertyData` model
+- Store: `src/store/useStore.ts` — Zustand with persist (v3 key)
+- Types: `src/models/types.ts` — all domain types
 - Mock data: `src/data/mockData.ts` — 3 assets, 2+ developments, 3 sales, 22 contacts, news, radar listings, appointments
-- KPI engine: `src/utils/kpiEngine.ts` — legacy NOI, LTV, DSCR calculations
-- Cash flow model: `src/utils/propertyCashFlowModel.ts` — new unified PropertyData-driven calculation engine (NOI, IRR, cashflow, WALT, NIY, DSCR, equity multiple)
-
-**Unified PropertyData Model** (central to all redesigned pages):
-- `PropertyData` — unified data shape flowing through Acquisition → Development → Bestand
-- Fields: `unitsAsIs` + `unitsTarget` (RentRollUnit[]), `acquisitionCosts` (AcquisitionCostItem[]), `operatingCosts` (PropertyOperatingCosts), `marketAssumptions` (PropertyMarketAssumptions per usage type), `gewerke` (GewerkePosition[]), `financingTranches` (FinancingTranche[]), `holdingPeriodYears`, etc.
-- `underwritingSnapshot` on `DevelopmentProject` — frozen copy of `PropertyData` at time of transfer from Acquisition
-- `offers` / `invoices` on `DevelopmentProject` — tracks contractor bids and invoices per Gewerk
-- Offer fields: `id, gewerkId, contractor, submittedAt, totalAmount, status (Eingegangen|In Prüfung|Beauftragt|Abgelehnt|Abgeschlossen), notes`
-- Invoice fields: `id, gewerkId, contractor, invoiceNumber, invoiceDate, dueDate, totalAmount, status (Offen|Fällig|Bezahlt|Storniert), notes`
+- KPI engine: `src/utils/kpiEngine.ts` — NOI, LTV, DSCR calculations
 
 **Pages** (in `src/pages/`):
 - `Portfolio.tsx` — dashboard overview
 - `Assets.tsx` — asset detail with Operating Costs tab (includes `rentalGrowthRate` field)
-- `Acquisition.tsx` — 8-section PropertyData-driven wizard (Stammdaten → Ankauf → Rent Roll → Opex → Markt → [Development] → Finanzierung → Cashflow → Zusammenfassung) + pipeline list with live KPIs
-- `DealDashboard.tsx` — Acquisition detail page with tabs: Summary | Stammdaten | Ankauf | Rent Roll | Opex | Markt | [Development] | Finanzierung | Cashflow | Dokumente | Bilder
-- `Developments.tsx` — exports `DevelopmentsPage` (list) and `DevelopmentDetailPage` (detail). Detail tabs: Summary | Stammdaten | Ankauf* (frozen from underwritingSnapshot) | Rent Roll (Ist/Ziel) | Opex | Markt | Kosten & Budget (gewerke+offers+invoices, 3-col UW comparison) | Finanzierung | Cashflow | Dokumente | Bilder
+- `Developments.tsx` — development project tracking
 - `Sales.tsx` — sales pipeline
+- `Acquisition.tsx` — deal underwriting
 - `OtherPages.tsx` — CashFlow (10-year model), Markt, Documents, AI Copilot, Settings, News, Deal Radar
-
-**Store actions** (useStore.ts):
-- `transferToDevelopment(dealId)` — copies `propertyData`, creates `underwritingSnapshot` (deep copy), starts with empty `offers`/`invoices`
-- `updateDealPropertyData(dealId, patch)` / `updateDevPropertyData(devId, patch)` — partial patches to PropertyData
-- `addOffer/updateOffer/deleteOffer` + `addInvoice/updateInvoice/deleteInvoice` — offer/invoice CRUD on DevelopmentProject
 
 **Cash Flow Page (10-Year Model)**:
 - Located in `OtherPages.tsx` → `CashFlowPage()`
