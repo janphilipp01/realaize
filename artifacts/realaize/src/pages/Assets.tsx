@@ -22,7 +22,7 @@ export function AssetsPage() {
   const dateLocale = lang === 'de' ? 'de-DE' : 'en-GB';
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('Alle');
-  const [view, setView] = useState<'cards' | 'table'>('table');
+  const [view, setView] = useState<'cards' | 'table'>('cards');
 
   const filtered = assets.filter(a => {
     const matchSearch = a.name.toLowerCase().includes(search.toLowerCase()) || a.city.toLowerCase().includes(search.toLowerCase());
