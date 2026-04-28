@@ -11,6 +11,7 @@ import { useStore } from '../../store/useStore';
 import { useLanguage } from '../../i18n/LanguageContext';
 import Addressbook from '../Addressbook';
 import Calendar from '../Calendar';
+import ApiStatusBadge from '../ApiStatusBadge';
 
 /* ── Flag SVGs ──────────────────────────────────────────── */
 function FlagDE({ size = 18 }: { size?: number }) {
@@ -291,6 +292,9 @@ export default function Layout({ children }: LayoutProps) {
           style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.06)', cursor: 'pointer', color: 'rgba(60,60,67,0.55)', gap: 6 }}>
           {collapsed ? <ChevronRight size={13} /> : <><ChevronLeft size={13} /><span style={{ fontSize: 12, fontWeight: 500 }}>{t('nav.collapse')}</span></>}
         </button>
+
+        {/* API status */}
+        <ApiStatusBadge collapsed={collapsed} />
 
         {/* Today's date */}
         <div style={{

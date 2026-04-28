@@ -78,6 +78,12 @@ export default defineConfig({
     headers: {
       "Cache-Control": "no-store",
     },
+    proxy: {
+      "/api": {
+        target: "http://localhost:3001",
+        changeOrigin: true,
+      },
+    },
     fs: {
       strict: true,
       deny: ["**/.*"],
