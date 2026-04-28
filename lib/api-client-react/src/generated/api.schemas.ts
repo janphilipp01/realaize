@@ -8,3 +8,38 @@
 export interface HealthStatus {
   status: string;
 }
+
+export type AiChatMessageRole =
+  (typeof AiChatMessageRole)[keyof typeof AiChatMessageRole];
+
+export const AiChatMessageRole = {
+  user: "user",
+  assistant: "assistant",
+} as const;
+
+export interface AiChatMessage {
+  role: AiChatMessageRole;
+  content: string;
+}
+
+export interface AiChatRequest {
+  /** Optional system prompt prepended to the conversation. */
+  system?: string;
+  /** @minItems 1 */
+  messages: AiChatMessage[];
+  /**
+   * @minimum 1
+   * @maximum 8192
+   */
+  maxTokens?: number;
+}
+
+export interface AiChatResult {
+  text: string;
+  model: string;
+  stopReason?: string | null;
+}
+
+export interface ErrorResponse {
+  error: string;
+}

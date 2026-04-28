@@ -56,7 +56,9 @@ Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` 
 
 - Entry: `src/index.ts` — reads `PORT`, starts Express
 - App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
+- Routes: `src/routes/index.ts` mounts sub-routers
+  - `src/routes/health.ts` exposes `GET /healthz` (full path: `/api/healthz`)
+  - `src/routes/aiChat.ts` exposes `POST /ai/chat` (full path: `/api/ai/chat`) — proxies to Anthropic Claude using the server-side `ANTHROPIC_API_KEY` secret. Returns `500` with a clear message when the secret is not configured. Frontend is **not yet wired** to this endpoint.
 - Depends on: `@workspace/db`, `@workspace/api-zod`
 - `pnpm --filter @workspace/api-server run dev` — run the dev server
 - `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)

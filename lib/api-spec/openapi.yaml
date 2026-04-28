@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: ai
+    description: AI copilot operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /ai/chat:
+    post:
+      operationId: aiChat
+      tags: [ai]
+      summary: AI copilot chat
+      description: Sends a chat conversation to the configured LLM and returns the assistant reply.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiChatRequest"
+      responses:
+        "200":
+          description: Assistant reply
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiChatResult"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Server error (e.g. missing API key, upstream failure)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +66,52 @@ components:
           type: string
       required:
         - status
-
+    AiChatMessage:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+      required:
+        - role
+        - content
+    AiChatRequest:
+      type: object
+      properties:
+        system:
+          type: string
+          description: Optional system prompt prepended to the conversation.
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiChatMessage"
+          minItems: 1
+        maxTokens:
+          type: integer
+          minimum: 1
+          maximum: 8192
+          default: 1500
+      required:
+        - messages
+    AiChatResult:
+      type: object
+      properties:
+        text:
+          type: string
+        model:
+          type: string
+        stopReason:
+          type: string
+          nullable: true
+      required:
+        - text
+        - model
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error

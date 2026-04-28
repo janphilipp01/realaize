@@ -14,3 +14,37 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Sends a chat conversation to the configured LLM and returns the assistant reply.
+ * @summary AI copilot chat
+ */
+
+export const aiChatBodyMaxTokensDefault = 1500;
+export const aiChatBodyMaxTokensMax = 8192;
+
+export const AiChatBody = zod.object({
+  system: zod
+    .string()
+    .optional()
+    .describe("Optional system prompt prepended to the conversation."),
+  messages: zod
+    .array(
+      zod.object({
+        role: zod.enum(["user", "assistant"]),
+        content: zod.string(),
+      }),
+    )
+    .min(1),
+  maxTokens: zod
+    .number()
+    .min(1)
+    .max(aiChatBodyMaxTokensMax)
+    .default(aiChatBodyMaxTokensDefault),
+});
+
+export const AiChatResponse = zod.object({
+  text: zod.string(),
+  model: zod.string(),
+  stopReason: zod.string().nullish(),
+});
