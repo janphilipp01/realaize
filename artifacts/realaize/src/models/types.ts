@@ -636,6 +636,8 @@ export interface AcquisitionCostItem {
   active: boolean;
 }
 
+export type LeaseEndAction = 'Neuvermietung' | 'Leerstand';
+
 export interface RentRollUnit {
   id: string;
   unitNumber: string;
@@ -643,14 +645,14 @@ export interface RentRollUnit {
   area: number;
   usageType: 'Wohnen' | 'Büro' | 'Einzelhandel' | 'Lager' | 'Stellplatz' | 'Sonstiges';
   tenant: string;
-  leaseStart: string;
-  leaseEnd: string;
-  currentRentPerSqm: number;
-  ervPerSqm: number;
-  monthlyRent: number;
-  indexationInterval: 'jährlich' | 'alle 2 Jahre' | 'alle 3 Jahre' | 'keine';
-  indexationRate: number;
-  nonRecoverableOpex: number;
+  leaseStart: string;              // ISO date — Mietstart
+  leaseDurationMonths: number;     // Laufzeit in Monaten ab Mietstart
+  leaseEndAction: LeaseEndAction;  // Was nach Ablauf passiert
+  currentRentPerSqm: number;       // Ist €/m²/Monat
+  ervPerSqm: number;               // ERV €/m²/Monat
+  monthlyRent: number;             // bidirektional mit currentRentPerSqm
+  indexationPercent: number;       // % der Inflation aus Market Assumptions (Default 100)
+  nonRecoverableOpex: number;      // €/Monat
   sourceUnitId?: string;
 }
 

@@ -118,7 +118,7 @@ React + Vite frontend application (real estate portfolio manager "RESTATE INVEST
 
 **Data Model (types.ts)**:
 - `PropertyData` — unified underwriting model for Acquisition→Development→Bestand flow
-- `RentRollUnit` — per-unit rent roll (isAs, isTarget, floor, usageType, area, rent, etc.)
+- `RentRollUnit` — per-unit rent roll (floor, usageType, area, monthlyRent, ervPerSqm, leaseStart, `leaseDurationMonths`, `leaseEndAction` ('Neuvermietung'|'Leerstand'), `indexationPercent`, nonRecoverableOpex). Held in `PropertyData.unitsAsIs` (Ist) and `PropertyData.unitsTarget` (Ziel). Per-unit, per-month rent computed via `pdComputeUnitRentForMonth` with annual indexation = opexInflation × indexationPercent / 100.
 - `GewerkePosition` — budget line items for development projects
 - `Offer` / `Invoice` — trade offer and invoice tracking (per development)
 - `FinancingTranche` — multi-tranche financing with LTV/LTC/rate/type

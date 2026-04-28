@@ -269,14 +269,77 @@ export function pdComputeWALT(units: RentRollUnit[], referenceDate: string): num
   let weightedSum = 0;
   let totalArea = 0;
   units.forEach(u => {
-    if (u.leaseEnd && u.tenant) {
-      const end = new Date(u.leaseEnd);
-      const remainingYears = Math.max(0, (end.getTime() - ref.getTime()) / (365.25 * 86400 * 1000));
+    if (u.tenant && u.leaseStart && u.leaseDurationMonths > 0) {
+      const leaseEnd = new Date(u.leaseStart);
+      leaseEnd.setMonth(leaseEnd.getMonth() + u.leaseDurationMonths);
+      const remainingYears = Math.max(0, (leaseEnd.getTime() - ref.getTime()) / (365.25 * 86400 * 1000));
       weightedSum += u.area * remainingYears;
       totalArea += u.area;
     }
   });
   return totalArea > 0 ? weightedSum / totalArea : 0;
+}
+
+/**
+ * Compute the rent for a single unit at a given calendar date.
+ *  - Before lease start: 0
+ *  - During lease term: monthlyRent indexed annually by `opexInflationPercent * indexationPercent / 100`
+ *    (only applied for completed full years since leaseStart)
+ *  - After lease term:
+ *      • leaseEndAction = 'Leerstand': 0
+ *      • leaseEndAction = 'Neuvermietung': 1 month vacancy, then continues at the last
+ *        indexed rent and keeps indexing yearly from the new start.
+ * `opexInflationPercent` is the annual percent (e.g. 2.5), not a multiplier.
+ */
+export function pdComputeUnitRentForMonth(
+  unit: RentRollUnit,
+  currentDate: Date,
+  opexInflationPercent: number,
+): number {
+  if (!unit.leaseStart || unit.monthlyRent <= 0) return 0;
+  const leaseStart = new Date(unit.leaseStart);
+  if (Number.isNaN(leaseStart.getTime())) return 0;
+  if (currentDate < leaseStart) return 0;
+
+  const annualIncrease = (opexInflationPercent * (unit.indexationPercent ?? 100)) / 100 / 100;
+  const MS_PER_YEAR = 365.25 * 86400 * 1000;
+  const MS_PER_MONTH = 30.44 * 86400 * 1000;
+
+  const duration = unit.leaseDurationMonths ?? 0;
+  const leaseEndDate = new Date(leaseStart);
+  if (duration > 0) leaseEndDate.setMonth(leaseEndDate.getMonth() + duration);
+
+  // No fixed end / open-ended lease → keep indexing forever
+  if (duration <= 0) {
+    const yearsSinceStart = (currentDate.getTime() - leaseStart.getTime()) / MS_PER_YEAR;
+    return unit.monthlyRent * Math.pow(1 + annualIncrease, Math.floor(yearsSinceStart));
+  }
+
+  // During original lease term
+  if (currentDate <= leaseEndDate) {
+    const yearsSinceStart = (currentDate.getTime() - leaseStart.getTime()) / MS_PER_YEAR;
+    return unit.monthlyRent * Math.pow(1 + annualIncrease, Math.floor(yearsSinceStart));
+  }
+
+  // After lease term
+  if (unit.leaseEndAction === 'Leerstand') return 0;
+
+  // Neuvermietung: 1 month vacancy, then continue at the rent reached at lease end and keep indexing
+  const monthsAfterEnd = (currentDate.getTime() - leaseEndDate.getTime()) / MS_PER_MONTH;
+  if (monthsAfterEnd <= 1) return 0;
+
+  const completedYearsAtEnd = Math.floor(duration / 12);
+  const rentAtLeaseEnd = unit.monthlyRent * Math.pow(1 + annualIncrease, completedYearsAtEnd);
+  const yearsAfterRenewal = (monthsAfterEnd - 1) / 12;
+  return rentAtLeaseEnd * Math.pow(1 + annualIncrease, Math.floor(yearsAfterRenewal));
+}
+
+export function pdComputeUnitsRentForMonth(
+  units: RentRollUnit[],
+  currentDate: Date,
+  opexInflationPercent: number,
+): number {
+  return units.reduce((sum, u) => sum + pdComputeUnitRentForMonth(u, currentDate, opexInflationPercent), 0);
 }
 
 export function pdComputeTotalNonRecoverable(units: RentRollUnit[]): number {
@@ -518,7 +581,7 @@ export function pdComputePropertyCashFlowMonthly(pd: PropertyData, sale?: SaleOb
 
   let cumulativeCF = 0;
   const useTarget = pd.unitsTarget.length > 0;
-  const monthlyRent = pdComputeAnnualRent(useTarget ? pd.unitsTarget : pd.unitsAsIs) / 12;
+  const activeUnits = useTarget ? pd.unitsTarget : pd.unitsAsIs;
 
   for (let m = 0; m < totalMonths; m++) {
     const calDate = new Date(acqDate);
@@ -530,11 +593,14 @@ export function pdComputePropertyCashFlowMonthly(pd: PropertyData, sale?: SaleOb
       ? (m < devCompletionMonth ? 0 : 1)
       : 1;
     const yearsElapsed = m / 12;
-    const indexGrowth = pd.marketAssumptions.perUsageType.length > 0
-      ? Math.pow(1 + (pd.marketAssumptions.perUsageType[0]?.ervGrowthRatePercent ?? 2.0) / 100, Math.max(0, yearsElapsed - (isDev ? devCompletionMonth / 12 : 0)))
-      : Math.pow(1 + 2.0 / 100, Math.max(0, yearsElapsed - (isDev ? devCompletionMonth / 12 : 0)));
 
-    const grossRent = monthlyRent * rentalFraction * indexGrowth;
+    // Per-unit rent: each unit indexes from its own leaseStart using its own indexationPercent
+    // applied to the property's opex inflation rate. Handles lease end + Neuvermietung/Leerstand.
+    const grossRent = rentalFraction * pdComputeUnitsRentForMonth(
+      activeUnits,
+      calDate,
+      pd.marketAssumptions.opexInflationPercent,
+    );
     const vacancyLoss = grossRent * pd.operatingCosts.vacancyRatePercent / 100;
     const otherIncome = pd.operatingCosts.otherIncomePerYear / 12;
     const egi = grossRent - vacancyLoss + otherIncome;

@@ -1,8 +1,12 @@
-import { useHealthCheck } from '@workspace/api-client-react';
+import { useHealthCheck, getHealthCheckQueryKey } from '@workspace/api-client-react';
 
 export default function ApiStatusBadge({ collapsed = false }: { collapsed?: boolean }) {
   const { data, isLoading, isError } = useHealthCheck({
-    query: { refetchInterval: 15000, refetchOnWindowFocus: false },
+    query: {
+      queryKey: getHealthCheckQueryKey(),
+      refetchInterval: 15000,
+      refetchOnWindowFocus: false,
+    },
   });
 
   const status: 'loading' | 'ok' | 'error' = isLoading
