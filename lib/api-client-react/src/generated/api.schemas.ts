@@ -32,6 +32,10 @@ export interface AiChatRequest {
    * @maximum 8192
    */
   maxTokens?: number;
+  /** Optional model override. Defaults to the server-configured model. */
+  model?: string;
+  /** When true, gives the model access to Anthropic's web_search tool (single use). */
+  webSearch?: boolean;
 }
 
 export interface AiChatResult {

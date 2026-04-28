@@ -23,15 +23,26 @@ router.post("/ai/chat", async (req, res) => {
     });
   }
 
-  const { system, messages, maxTokens } = parsed.data;
+  const { system, messages, maxTokens, model, webSearch } = parsed.data;
 
   try {
     const client = new Anthropic({ apiKey });
     const completion = await client.messages.create({
-      model: DEFAULT_MODEL,
+      model: model ?? DEFAULT_MODEL,
       max_tokens: maxTokens,
       system,
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      ...(webSearch
+        ? {
+            tools: [
+              {
+                type: "web_search_20250305",
+                name: "web_search",
+                max_uses: 1,
+              } as unknown as Anthropic.Messages.ToolUnion,
+            ],
+          }
+        : {}),
     });
 
     const text = completion.content

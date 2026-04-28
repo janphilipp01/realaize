@@ -23,6 +23,8 @@ export const HealthCheckResponse = zod.object({
 export const aiChatBodyMaxTokensDefault = 1500;
 export const aiChatBodyMaxTokensMax = 8192;
 
+export const aiChatBodyWebSearchDefault = false;
+
 export const AiChatBody = zod.object({
   system: zod
     .string()
@@ -41,6 +43,18 @@ export const AiChatBody = zod.object({
     .min(1)
     .max(aiChatBodyMaxTokensMax)
     .default(aiChatBodyMaxTokensDefault),
+  model: zod
+    .string()
+    .optional()
+    .describe(
+      "Optional model override. Defaults to the server-configured model.",
+    ),
+  webSearch: zod
+    .boolean()
+    .default(aiChatBodyWebSearchDefault)
+    .describe(
+      "When true, gives the model access to Anthropic's web_search tool (single use).",
+    ),
 });
 
 export const AiChatResponse = zod.object({
