@@ -59,6 +59,8 @@ Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` 
 - Routes: `src/routes/index.ts` mounts sub-routers
   - `src/routes/health.ts` exposes `GET /healthz` (full path: `/api/healthz`)
   - `src/routes/aiChat.ts` exposes `POST /ai/chat` (full path: `/api/ai/chat`) — proxies to Anthropic Claude using the server-side `ANTHROPIC_API_KEY` secret. Accepts `system`, `messages`, `maxTokens`, optional `model` override, and `webSearch: true` to enable Anthropic's `web_search` tool (single use). Returns `{ text, model, stopReason }`. This single endpoint is intended to back **all four** browser-side agents (`OtherPages.tsx` AI Copilot, `utils/newsAgent.ts`, `utils/dealRadarAgent.ts`, `utils/marketResearchAgent.ts`). Returns `500` with a clear message when the secret is not configured. Frontend is **not yet wired** to this endpoint.
+    - **Per-IP rate limit** (in-process, two windows): 20 req/minute and 200 req/hour. Exceeding either returns `429` with a `Retry-After` header and is logged as `ai_chat rate limit exceeded`.
+    - **Structured logging** via pino: every request logs `{ ip, model, messageCount, maxTokens, webSearch, hasSystem }`; success additionally logs `{ stopReason, inputTokens, outputTokens, latencyMs }`; upstream errors log `{ ip, model, latencyMs, err }` at error level.
 - Depends on: `@workspace/db`, `@workspace/api-zod`
 - `pnpm --filter @workspace/api-server run dev` — run the dev server
 - `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
