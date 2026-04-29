@@ -105,6 +105,67 @@ function SH({ children }: { children: React.ReactNode }) {
   return <div style={{ fontSize: 13, fontWeight: 700, color: '#1c1c1e', borderBottom: '1px solid rgba(0,0,0,0.08)', paddingBottom: 8, marginBottom: 16, marginTop: 24 }}>{children}</div>;
 }
 
+// ── Floor multi-select (tag-style) ─────────────────────────────────────────
+function FloorTagPicker({
+  value,
+  onChange,
+}: {
+  value: FloorLevel[];
+  onChange: (floors: FloorLevel[]) => void;
+}) {
+  const selected = new Set(value);
+  const toggle = (f: FloorLevel) => {
+    const next = new Set(selected);
+    if (next.has(f)) next.delete(f);
+    else next.add(f);
+    // Preserve canonical FLOORS order in the output
+    onChange(FLOORS.filter(x => next.has(x)));
+  };
+  return (
+    <div
+      style={{
+        display: 'flex', flexWrap: 'wrap', gap: 6,
+        padding: '8px 10px',
+        background: 'rgba(0,0,0,0.03)',
+        border: '1px solid rgba(0,0,0,0.06)',
+        borderRadius: 10,
+        minHeight: 42,
+      }}
+    >
+      {FLOORS.map(f => {
+        const active = selected.has(f);
+        return (
+          <button
+            key={f}
+            type="button"
+            onClick={() => toggle(f)}
+            style={{
+              padding: '5px 11px',
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              border: active ? '1px solid #007aff' : '1px solid rgba(0,0,0,0.08)',
+              background: active ? 'linear-gradient(135deg, #007aff, #0051a8)' : 'rgba(255,255,255,0.7)',
+              color: active ? '#fff' : 'rgba(60,60,67,0.65)',
+              boxShadow: active ? '0 2px 8px rgba(0,122,255,0.2)' : 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {f}
+          </button>
+        );
+      })}
+      {value.length === 0 && (
+        <span style={{ alignSelf: 'center', fontSize: 11, color: 'rgba(60,60,67,0.4)', fontStyle: 'italic', marginLeft: 4 }}>
+          Keine Etagen ausgewählt
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // TAB 1: Stammdaten
 // ═══════════════════════════════════════════════════════════════════════════
@@ -148,8 +209,15 @@ function TabStammdaten({ pd, onChange }: { pd: PropertyData; onChange: (p: Parti
         <Field label="Adresse" value={pd.address} onChange={e => onChange({ address: e.target.value })} style={{ gridColumn: '1 / 3' }} />
         <Field label="PLZ" value={pd.zip} onChange={e => onChange({ zip: e.target.value })} />
         <Field label="Stadt" value={pd.city} onChange={e => onChange({ city: e.target.value })} />
-        <Field label="Etagen (Komma-getrennt)" value={pd.floors.join(', ')}
-          onChange={e => onChange({ floors: e.target.value.split(',').map(s => s.trim()) as FloorLevel[] })} style={{ gridColumn: '1 / 3' }} />
+        <div style={{ gridColumn: '1 / 3', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(60,60,67,0.55)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            Etagen
+          </label>
+          <FloorTagPicker
+            value={pd.floors}
+            onChange={(floors) => onChange({ floors })}
+          />
+        </div>
       </div>
       {isDev && (
         <>
