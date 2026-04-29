@@ -271,7 +271,15 @@ function TabAcquisition({ pd, onChange }: { pd: PropertyData; onChange: (p: Part
             <input type="checkbox" checked={c.active} onChange={e => updateCostItem(c.id, { active: e.target.checked })} style={{ width: 16, height: 16 }} />
           </div>
         ))}
-        <button className="btn-ghost" style={{ fontSize: 12, marginTop: 6 }} onClick={() => onChange({ acquisitionCosts: [...pd.acquisitionCosts, { id: uid(), name: 'Sonstiges', percent: 0, active: true }] })}>
+        <button
+          className="btn-ghost"
+          style={{
+            fontSize: 12, marginTop: 6, whiteSpace: 'nowrap',
+            display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+            border: '1px solid rgba(0,0,0,0.12)', borderRadius: 8, padding: '6px 12px',
+          }}
+          onClick={() => onChange({ acquisitionCosts: [...pd.acquisitionCosts, { id: uid(), name: 'Sonstiges', percent: 0, active: true }] })}
+        >
           <Plus size={12} /> Position hinzufügen
         </button>
       </div>
@@ -878,7 +886,17 @@ function TabDevelopment({ pd, onChange }: { pd: PropertyData; onChange: (p: Part
           </tbody>
         </table>
       </div>
-      <button onClick={addGewerk} className="btn-ghost" style={{ fontSize: 12, marginBottom: 24 }}><Plus size={12} /> Gewerk hinzufügen</button>
+      <button
+        onClick={addGewerk}
+        className="btn-ghost"
+        style={{
+          fontSize: 12, marginBottom: 24, whiteSpace: 'nowrap',
+          display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+          border: '1px solid rgba(0,0,0,0.12)', borderRadius: 8, padding: '6px 12px',
+        }}
+      >
+        <Plus size={12} /> Gewerk hinzufügen
+      </button>
 
       {pd.gewerke.length > 0 && (
         <>
@@ -965,7 +983,17 @@ function TabFinanzierung({ pd, onChange }: { pd: PropertyData; onChange: (p: Par
           </div>
         </div>
       ))}
-      <button onClick={addTranche} className="btn-ghost" style={{ fontSize: 12, marginBottom: 20 }}><Plus size={12} /> Tranche hinzufügen</button>
+      <button
+        onClick={addTranche}
+        className="btn-ghost"
+        style={{
+          fontSize: 12, marginBottom: 20, whiteSpace: 'nowrap',
+          display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
+          border: '1px solid rgba(0,0,0,0.12)', borderRadius: 8, padding: '6px 12px',
+        }}
+      >
+        <Plus size={12} /> Tranche hinzufügen
+      </button>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
         <Chip label="Gesamtinvestition" value={fmt(totalCapReq)} />
