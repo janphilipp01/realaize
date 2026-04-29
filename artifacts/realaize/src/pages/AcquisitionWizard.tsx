@@ -105,6 +105,56 @@ function SH({ children }: { children: React.ReactNode }) {
   return <div style={{ fontSize: 13, fontWeight: 700, color: '#1c1c1e', borderBottom: '1px solid rgba(0,0,0,0.08)', paddingBottom: 8, marginBottom: 16, marginTop: 24 }}>{children}</div>;
 }
 
+// ── Usage type single-select (button-style) ────────────────────────────────
+function UsageTypePicker({
+  value,
+  onChange,
+}: {
+  value: PropertyData['usageType'];
+  onChange: (u: PropertyData['usageType']) => void;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex', flexWrap: 'wrap', gap: 6,
+        padding: '8px 10px',
+        background: 'rgba(0,0,0,0.03)',
+        border: '1px solid rgba(0,0,0,0.06)',
+        borderRadius: 10,
+        minHeight: 42,
+      }}
+    >
+      {MAIN_USAGE.map(u => {
+        const active = value === u;
+        return (
+          <button
+            key={u}
+            type="button"
+            onClick={() => onChange(u)}
+            style={{
+              flex: '1 1 0',
+              minWidth: 0,
+              padding: '6px 12px',
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s',
+              border: active ? '1px solid #007aff' : '1px solid rgba(0,0,0,0.08)',
+              background: active ? 'linear-gradient(135deg, #007aff, #0051a8)' : 'rgba(255,255,255,0.7)',
+              color: active ? '#fff' : 'rgba(60,60,67,0.65)',
+              boxShadow: active ? '0 2px 8px rgba(0,122,255,0.2)' : 'none',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {u}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Floor multi-select (tag-style) ─────────────────────────────────────────
 function FloorTagPicker({
   value,
@@ -202,10 +252,16 @@ function TabStammdaten({ pd, onChange }: { pd: PropertyData; onChange: (p: Parti
         })}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <Field label="Objektname" value={pd.name} onChange={e => onChange({ name: e.target.value })} />
-        <SelectField label="Hauptnutzungsart" value={pd.usageType} onChange={e => onChange({ usageType: e.target.value as any })}>
-          {MAIN_USAGE.map(u => <option key={u} value={u}>{u}</option>)}
-        </SelectField>
+        <Field label="Objektname" value={pd.name} onChange={e => onChange({ name: e.target.value })} style={{ gridColumn: '1 / 3' }} />
+        <div style={{ gridColumn: '1 / 3', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: 'rgba(60,60,67,0.55)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            Hauptnutzungsart
+          </label>
+          <UsageTypePicker
+            value={pd.usageType}
+            onChange={(usageType) => onChange({ usageType })}
+          />
+        </div>
         <Field label="Adresse" value={pd.address} onChange={e => onChange({ address: e.target.value })} style={{ gridColumn: '1 / 3' }} />
         <Field label="PLZ" value={pd.zip} onChange={e => onChange({ zip: e.target.value })} />
         <Field label="Stadt" value={pd.city} onChange={e => onChange({ city: e.target.value })} />
@@ -1138,24 +1194,26 @@ function TabSummary({ pd }: { pd: PropertyData }) {
   return (
     <div>
       <SH>Investment Summary</SH>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <GlassPanel>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24, alignItems: 'stretch' }}>
+        <GlassPanel style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(60,60,67,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Objekt</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#1c1c1e', marginBottom: 4 }}>{pd.name || '—'}</div>
-          <div style={{ fontSize: 12, color: 'rgba(60,60,67,0.55)', marginBottom: 10 }}>
-            {pd.address || '—'}{pd.address && (pd.zip || pd.city) ? ', ' : ''}{pd.zip} {pd.city}
-          </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ background: 'rgba(0,122,255,0.1)', color: '#007aff', fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 6 }}>{pd.dealType}</span>
-            <span style={{ background: 'rgba(201,169,110,0.1)', color: '#c9a96e', fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 6 }}>{pd.usageType}</span>
-            <span style={{ background: 'rgba(60,60,67,0.06)', color: 'rgba(60,60,67,0.65)', fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 6 }}>
-              Haltedauer {pd.holdingPeriodYears}J
-            </span>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#1c1c1e' }}>{pd.name || '—'}</div>
+            <div style={{ fontSize: 12, color: 'rgba(60,60,67,0.55)' }}>
+              {pd.address || '—'}{pd.address && (pd.zip || pd.city) ? ', ' : ''}{pd.zip} {pd.city}
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+              <span style={{ background: 'rgba(0,122,255,0.1)', color: '#007aff', fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 6 }}>{pd.dealType}</span>
+              <span style={{ background: 'rgba(201,169,110,0.1)', color: '#c9a96e', fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 6 }}>{pd.usageType}</span>
+              <span style={{ background: 'rgba(60,60,67,0.06)', color: 'rgba(60,60,67,0.65)', fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 6 }}>
+                Haltedauer {pd.holdingPeriodYears}J
+              </span>
+            </div>
           </div>
         </GlassPanel>
-        <GlassPanel>
+        <GlassPanel style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(60,60,67,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Kapitalstruktur</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <Chip label="Kaufpreis" value={fmt(pd.purchasePrice)} />
             <Chip label="Gesamtinvestition" value={fmt(totalCapReq)} color="#007aff" />
             <Chip label="Fremdkapital" value={fmt(totalLoan)} color="#f87171" />
