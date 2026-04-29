@@ -572,10 +572,26 @@ function RentRollSection({
 
       {/* Buttons OUTSIDE the scroll container — single-line, section-specific labels */}
       <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 8, marginTop: 12, marginBottom: 16 }}>
-        <button onClick={addUnit} className="btn-ghost" style={{ fontSize: 12, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <button
+          onClick={addUnit}
+          className="btn-ghost"
+          style={{
+            fontSize: 12, whiteSpace: 'nowrap',
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            border: '1px solid rgba(0,0,0,0.12)', borderRadius: 8, padding: '6px 12px',
+          }}
+        >
           <Plus size={12} /> {addLabel}
         </button>
-        <button onClick={() => setQuickOpen(true)} className="btn-ghost" style={{ fontSize: 12, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <button
+          onClick={() => setQuickOpen(true)}
+          className="btn-ghost"
+          style={{
+            fontSize: 12, whiteSpace: 'nowrap',
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            border: '1px solid rgba(0,0,0,0.12)', borderRadius: 8, padding: '6px 12px',
+          }}
+        >
           Schnellerfassung
         </button>
       </div>
