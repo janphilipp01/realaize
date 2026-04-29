@@ -48,7 +48,7 @@ interface NavItem {
 
 interface LayoutProps { children: React.ReactNode; }
 
-const DEFAULT_NAV_ORDER = ['portfolio', 'assets', 'developments', 'debt', 'sales', 'acquisition', 'markt', 'documents', 'ai', 'news', 'settings'];
+const DEFAULT_NAV_ORDER = ['portfolio', 'acquisition', 'developments', 'assets', 'sales', 'debt', 'markt', 'documents', 'ai', 'news', 'settings'];
 
 export default function Layout({ children }: LayoutProps) {
   const [collapsed, setCollapsed] = useState(false);

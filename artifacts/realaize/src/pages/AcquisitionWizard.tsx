@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   X, ChevronLeft, ChevronRight, Plus, Trash2, Lock, Copy,
   Building2, DollarSign, Users, Settings2, TrendingUp, HardHat,
@@ -35,8 +35,25 @@ const FINANCING_TYPES = ['Bankdarlehen', 'Mezzanine', 'Privates Darlehen', 'Gese
 const REPAYMENT_TYPES = ['Annuität', 'Endfällig'] as const;
 const COST_DISTRIBUTIONS = ['vorauszahlung', 'linear', '30-40-30', 'endfällig'] as const;
 
-const TAB_ICONS = [Building2, DollarSign, Users, Settings2, TrendingUp, HardHat, CreditCard, BarChart3, CheckCircle2];
-const TAB_LABELS = ['Stammdaten', 'Acquisition', 'Rent Roll', 'Opex', 'Market', 'Development', 'Finanzierung', 'Cashflow', 'Summary'];
+// Tab registry — each tab keyed by name. Order is built dynamically per dealType.
+type TabKey =
+  | 'Stammdaten' | 'Acquisition' | 'Development' | 'Finanzierung'
+  | 'Rent Roll'  | 'Opex'        | 'Market'      | 'Cashflow' | 'Summary';
+
+const TAB_ICONS: Record<TabKey, typeof Building2> = {
+  'Stammdaten':   Building2,
+  'Acquisition':  DollarSign,
+  'Development':  HardHat,
+  'Finanzierung': CreditCard,
+  'Rent Roll':    Users,
+  'Opex':         Settings2,
+  'Market':       TrendingUp,
+  'Cashflow':     BarChart3,
+  'Summary':      CheckCircle2,
+};
+
+const INVESTMENT_TABS: TabKey[] = ['Stammdaten', 'Acquisition', 'Finanzierung', 'Rent Roll', 'Opex', 'Market', 'Cashflow', 'Summary'];
+const DEVELOPMENT_TABS: TabKey[] = ['Stammdaten', 'Acquisition', 'Development', 'Finanzierung', 'Rent Roll', 'Opex', 'Market', 'Cashflow', 'Summary'];
 
 const uid = () => `id-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -96,20 +113,43 @@ function TabStammdaten({ pd, onChange }: { pd: PropertyData; onChange: (p: Parti
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       <SH>Objektdaten</SH>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+        {(['Investment', 'Development'] as DealType[]).map(dt => {
+          const active = pd.dealType === dt;
+          return (
+            <button
+              key={dt}
+              type="button"
+              onClick={() => onChange({ dealType: dt })}
+              style={{
+                flex: 1,
+                padding: '10px 14px',
+                borderRadius: 10,
+                border: active ? '1px solid #007aff' : '1px solid rgba(0,0,0,0.08)',
+                background: active ? 'linear-gradient(135deg, #007aff, #0051a8)' : 'rgba(0,0,0,0.03)',
+                color: active ? '#fff' : 'rgba(60,60,67,0.65)',
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                boxShadow: active ? '0 4px 14px rgba(0,122,255,0.25)' : 'none',
+              }}
+            >
+              {dt}
+            </button>
+          );
+        })}
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <Field label="Objektname" value={pd.name} onChange={e => onChange({ name: e.target.value })} />
-        <SelectField label="Deal Type" value={pd.dealType} onChange={e => onChange({ dealType: e.target.value as DealType })}>
-          <option value="Investment">Investment</option>
-          <option value="Development">Development</option>
+        <SelectField label="Hauptnutzungsart" value={pd.usageType} onChange={e => onChange({ usageType: e.target.value as any })}>
+          {MAIN_USAGE.map(u => <option key={u} value={u}>{u}</option>)}
         </SelectField>
         <Field label="Adresse" value={pd.address} onChange={e => onChange({ address: e.target.value })} style={{ gridColumn: '1 / 3' }} />
         <Field label="PLZ" value={pd.zip} onChange={e => onChange({ zip: e.target.value })} />
         <Field label="Stadt" value={pd.city} onChange={e => onChange({ city: e.target.value })} />
-        <SelectField label="Hauptnutzungsart" value={pd.usageType} onChange={e => onChange({ usageType: e.target.value as any })}>
-          {MAIN_USAGE.map(u => <option key={u} value={u}>{u}</option>)}
-        </SelectField>
         <Field label="Etagen (Komma-getrennt)" value={pd.floors.join(', ')}
-          onChange={e => onChange({ floors: e.target.value.split(',').map(s => s.trim()) as FloorLevel[] })} />
+          onChange={e => onChange({ floors: e.target.value.split(',').map(s => s.trim()) as FloorLevel[] })} style={{ gridColumn: '1 / 3' }} />
       </div>
       {isDev && (
         <>
@@ -357,6 +397,7 @@ function RentRollSection({
   opexInflationPercent,
   delta,
   defaultLeaseStart,
+  addLabel,
 }: {
   title: string;
   units: RentRollUnit[];
@@ -365,6 +406,7 @@ function RentRollSection({
   opexInflationPercent: number;
   delta?: { absolute: number; percent: number } | null;
   defaultLeaseStart: string;
+  addLabel: string;
 }) {
   const [quickOpen, setQuickOpen] = useState(false);
 
@@ -389,7 +431,7 @@ function RentRollSection({
   const avgRentPerSqm = totalArea > 0 ? (annualRent / 12) / totalArea : 0;
   const walt = pdComputeWALT(units, waltDate);
 
-  const headers = ['Einheit', 'Etage', 'Fläche m²', 'Nutzung', 'Mieter', 'Mietstart', 'Laufzeit (Mon.)', 'Anschluss', 'Ist €/m²', 'ERV €/m²', 'Mon. Miete', 'Indexierung %', 'NK n.u. €/Mon', ''];
+  const headers = ['Einheit', 'Etage', 'Fläche m²', 'Nutzung', 'Mieter', 'Mietstart', 'Laufzeit (Mon.)', 'Anschluss', '€/m²', 'ERV €/m²', 'Mon. Miete', 'Indexierung %', 'NK n.u. €/Mon', ''];
 
   return (
     <div style={{ marginBottom: 24 }}>
@@ -460,10 +502,14 @@ function RentRollSection({
         </div>
       </div>
 
-      {/* Buttons OUTSIDE the scroll container — fixed position regardless of row count */}
-      <div style={{ display: 'flex', gap: 8, marginTop: 12, marginBottom: 16 }}>
-        <button onClick={addUnit} className="btn-ghost" style={{ fontSize: 12 }}><Plus size={12} /> Position hinzufügen</button>
-        <button onClick={() => setQuickOpen(true)} className="btn-ghost" style={{ fontSize: 12 }}>Schnellerfassung</button>
+      {/* Buttons OUTSIDE the scroll container — single-line, section-specific labels */}
+      <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 8, marginTop: 12, marginBottom: 16 }}>
+        <button onClick={addUnit} className="btn-ghost" style={{ fontSize: 12, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <Plus size={12} /> {addLabel}
+        </button>
+        <button onClick={() => setQuickOpen(true)} className="btn-ghost" style={{ fontSize: 12, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          Schnellerfassung
+        </button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
@@ -523,6 +569,7 @@ function TabRentRoll({ pd, onChange }: { pd: PropertyData; onChange: (p: Partial
         waltDate={waltDate}
         opexInflationPercent={pd.marketAssumptions.opexInflationPercent}
         defaultLeaseStart={pd.acquisitionDate || ''}
+        addLabel="Ist-Mieter hinzufügen"
       />
 
       {isDev && (
@@ -540,6 +587,7 @@ function TabRentRoll({ pd, onChange }: { pd: PropertyData; onChange: (p: Partial
             opexInflationPercent={pd.marketAssumptions.opexInflationPercent}
             delta={delta}
             defaultLeaseStart={pd.acquisitionDate || ''}
+            addLabel="Ziel-Mieter hinzufügen"
           />
         </>
       )}
@@ -950,23 +998,51 @@ function TabSummary({ pd }: { pd: PropertyData }) {
   const equity = totalCapReq - totalLoan;
   const ltv = totalCapReq > 0 ? (totalLoan / totalCapReq) * 100 : 0;
 
+  // Helpers for the assumption cards — keeps the layout uniform
+  const StatRow = ({ label, value, strong }: { label: string; value: React.ReactNode; strong?: boolean }) => (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+      padding: '6px 0', borderBottom: '1px dashed rgba(0,0,0,0.06)',
+      fontSize: 12,
+    }}>
+      <span style={{ color: 'rgba(60,60,67,0.55)' }}>{label}</span>
+      <span style={{ fontWeight: strong ? 700 : 600, color: '#1c1c1e' }}>{value}</span>
+    </div>
+  );
+
+  const AssumptionCard = ({ title: t, children }: { title: string; children: React.ReactNode }) => (
+    <div style={{
+      background: 'rgba(0,0,0,0.03)', borderRadius: 12, padding: '14px 16px',
+      display: 'flex', flexDirection: 'column', gap: 2,
+    }}>
+      <div style={{
+        fontSize: 10, fontWeight: 700, color: 'rgba(60,60,67,0.45)',
+        textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6,
+      }}>{t}</div>
+      {children}
+    </div>
+  );
+
   return (
     <div>
       <SH>Investment Summary</SH>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
         <GlassPanel>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(60,60,67,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Objekt</div>
-          <div style={{ fontSize: 13, lineHeight: 1.7 }}>
-            <div><strong>{pd.name}</strong></div>
-            <div style={{ color: 'rgba(60,60,67,0.55)' }}>{pd.address}, {pd.zip} {pd.city}</div>
-            <div style={{ marginTop: 6 }}>
-              <span style={{ background: 'rgba(0,122,255,0.1)', color: '#007aff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6 }}>{pd.dealType}</span>
-              <span style={{ marginLeft: 6, background: 'rgba(201,169,110,0.1)', color: '#c9a96e', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6 }}>{pd.usageType}</span>
-            </div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(60,60,67,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Objekt</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#1c1c1e', marginBottom: 4 }}>{pd.name || '—'}</div>
+          <div style={{ fontSize: 12, color: 'rgba(60,60,67,0.55)', marginBottom: 10 }}>
+            {pd.address || '—'}{pd.address && (pd.zip || pd.city) ? ', ' : ''}{pd.zip} {pd.city}
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{ background: 'rgba(0,122,255,0.1)', color: '#007aff', fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 6 }}>{pd.dealType}</span>
+            <span style={{ background: 'rgba(201,169,110,0.1)', color: '#c9a96e', fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 6 }}>{pd.usageType}</span>
+            <span style={{ background: 'rgba(60,60,67,0.06)', color: 'rgba(60,60,67,0.65)', fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 6 }}>
+              Haltedauer {pd.holdingPeriodYears}J
+            </span>
           </div>
         </GlassPanel>
         <GlassPanel>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(60,60,67,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Kapitalstruktur</div>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(60,60,67,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Kapitalstruktur</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <Chip label="Kaufpreis" value={fmt(pd.purchasePrice)} />
             <Chip label="Gesamtinvestition" value={fmt(totalCapReq)} color="#007aff" />
@@ -978,7 +1054,7 @@ function TabSummary({ pd }: { pd: PropertyData }) {
 
       <SH>Key Performance Indicators</SH>
       {kpis ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
           <KPICard label="NIY" value={formatPct(kpis.niyAtAcquisition)} trend={kpis.niyAtAcquisition >= 4 ? 'up' : 'down'} />
           <KPICard label="NOI Ist" value={fmt(kpis.noiIst)} />
           <KPICard label="GRI p.a." value={fmt(kpis.gri)} />
@@ -1004,33 +1080,39 @@ function TabSummary({ pd }: { pd: PropertyData }) {
       )}
 
       <SH>Annahmen-Zusammenfassung</SH>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, fontSize: 12 }}>
-        <div style={{ background: 'rgba(0,0,0,0.03)', borderRadius: 10, padding: 12 }}>
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>Finanzierung</div>
-          <div>LTV: <strong>{formatPct(ltv)}</strong></div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+        <AssumptionCard title="Finanzierung">
+          <StatRow label="LTV" value={formatPct(ltv)} strong />
+          <StatRow label="Tranchen" value={pd.financingTranches.length || '—'} />
           {pd.financingTranches.map(t => (
-            <div key={t.id} style={{ marginTop: 4 }}>{t.name}: {fmt(t.loanAmount)} @ {t.interestRate}%</div>
+            <StatRow
+              key={t.id}
+              label={t.name}
+              value={`${fmt(t.loanAmount)} · ${t.interestRate}%`}
+            />
           ))}
-          {pd.financingTranches.length === 0 && <div style={{ color: 'rgba(60,60,67,0.35)' }}>Keine Tranchen</div>}
-        </div>
-        <div style={{ background: 'rgba(0,0,0,0.03)', borderRadius: 10, padding: 12 }}>
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>Markt</div>
+        </AssumptionCard>
+        <AssumptionCard title="Markt">
+          <StatRow label="Haltedauer" value={`${pd.holdingPeriodYears} J`} strong />
+          <StatRow label="Opex-Inflation" value={`${pd.marketAssumptions.opexInflationPercent}%`} />
           {pd.marketAssumptions.perUsageType.map(m => (
-            <div key={m.usageType}>{m.usageType}: ERV +{m.ervGrowthRatePercent}% | Exit {m.exitCapRatePercent}%</div>
+            <StatRow
+              key={m.usageType}
+              label={m.usageType}
+              value={`ERV +${m.ervGrowthRatePercent}% · Exit ${m.exitCapRatePercent}%`}
+            />
           ))}
-          <div style={{ marginTop: 4 }}>Haltedauer: {pd.holdingPeriodYears}J</div>
-        </div>
-        <div style={{ background: 'rgba(0,0,0,0.03)', borderRadius: 10, padding: 12 }}>
-          <div style={{ fontWeight: 700, marginBottom: 8 }}>Rent Roll</div>
-          <div>Einheiten Ist: {pd.unitsAsIs.length}</div>
-          <div>GRI Ist: {fmt(pdComputeAnnualRent(pd.unitsAsIs))}</div>
+        </AssumptionCard>
+        <AssumptionCard title="Rent Roll">
+          <StatRow label="Einheiten Ist" value={pd.unitsAsIs.length} strong />
+          <StatRow label="GRI Ist" value={fmt(pdComputeAnnualRent(pd.unitsAsIs))} />
           {pd.unitsTarget.length > 0 && (
             <>
-              <div style={{ marginTop: 4 }}>Einheiten Ziel: {pd.unitsTarget.length}</div>
-              <div>GRI Ziel: {fmt(pdComputeAnnualRent(pd.unitsTarget))}</div>
+              <StatRow label="Einheiten Ziel" value={pd.unitsTarget.length} strong />
+              <StatRow label="GRI Ziel" value={fmt(pdComputeAnnualRent(pd.unitsTarget))} />
             </>
           )}
-        </div>
+        </AssumptionCard>
       </div>
     </div>
   );
@@ -1051,13 +1133,12 @@ export function AcquisitionWizard({ initialData, onSave, onClose, title }: Acqui
   const [activeTab, setActiveTab] = useState(0);
 
   const isDev = pd.dealType === 'Development';
-  const visibleTabs = TAB_LABELS.filter((_, i) => {
-    if (i === 5) return isDev; // Development tab only for Dev deals
-    return true;
-  });
-  const visibleTabIcons = TAB_ICONS.filter((_, i) => !(i === 5 && !isDev));
-  const activeTabLabel = visibleTabs[activeTab];
-  const actualTabIndex = TAB_LABELS.indexOf(activeTabLabel);
+  const visibleTabs: TabKey[] = isDev ? DEVELOPMENT_TABS : INVESTMENT_TABS;
+
+  // Clamp activeTab when switching deal types (e.g. Dev → Investment shrinks the list)
+  useEffect(() => {
+    if (activeTab >= visibleTabs.length) setActiveTab(visibleTabs.length - 1);
+  }, [visibleTabs.length, activeTab]);
 
   const updatePd = useCallback((patch: Partial<PropertyData>) => {
     setPd(prev => ({ ...prev, ...patch }));
@@ -1065,20 +1146,21 @@ export function AcquisitionWizard({ initialData, onSave, onClose, title }: Acqui
 
   const handleSave = () => onSave(pd);
 
-  const tabContent = () => {
-    switch (actualTabIndex) {
-      case 0: return <TabStammdaten pd={pd} onChange={updatePd} />;
-      case 1: return <TabAcquisition pd={pd} onChange={updatePd} />;
-      case 2: return <TabRentRoll pd={pd} onChange={updatePd} />;
-      case 3: return <TabOpex pd={pd} onChange={updatePd} />;
-      case 4: return <TabMarket pd={pd} onChange={updatePd} />;
-      case 5: return <TabDevelopment pd={pd} onChange={updatePd} />;
-      case 6: return <TabFinanzierung pd={pd} onChange={updatePd} />;
-      case 7: return <TabCashflow pd={pd} />;
-      case 8: return <TabSummary pd={pd} />;
-      default: return null;
+  const renderTab = (key: TabKey) => {
+    switch (key) {
+      case 'Stammdaten':   return <TabStammdaten pd={pd} onChange={updatePd} />;
+      case 'Acquisition':  return <TabAcquisition pd={pd} onChange={updatePd} />;
+      case 'Development':  return <TabDevelopment pd={pd} onChange={updatePd} />;
+      case 'Finanzierung': return <TabFinanzierung pd={pd} onChange={updatePd} />;
+      case 'Rent Roll':    return <TabRentRoll pd={pd} onChange={updatePd} />;
+      case 'Opex':         return <TabOpex pd={pd} onChange={updatePd} />;
+      case 'Market':       return <TabMarket pd={pd} onChange={updatePd} />;
+      case 'Cashflow':     return <TabCashflow pd={pd} />;
+      case 'Summary':      return <TabSummary pd={pd} />;
+      default:             return null;
     }
   };
+  const tabContent = () => renderTab(visibleTabs[activeTab]);
 
   return (
     <div style={{
@@ -1116,7 +1198,7 @@ export function AcquisitionWizard({ initialData, onSave, onClose, title }: Acqui
           overflowX: 'auto', background: 'rgba(248,248,248,0.8)',
         }}>
           {visibleTabs.map((label, i) => {
-            const Icon = visibleTabIcons[i];
+            const Icon = TAB_ICONS[label];
             const isActive = activeTab === i;
             return (
               <button
@@ -1160,20 +1242,34 @@ export function AcquisitionWizard({ initialData, onSave, onClose, title }: Acqui
           <div style={{ fontSize: 12, color: 'rgba(60,60,67,0.45)' }}>
             {activeTab + 1} / {visibleTabs.length}
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={handleSave} className="btn-ghost" style={{ fontWeight: 600, color: '#4ade80' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              onClick={handleSave}
+              className="btn-ghost"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                fontWeight: 600, color: '#4ade80', whiteSpace: 'nowrap',
+              }}
+            >
               <CheckCircle2 size={14} /> Speichern
             </button>
             {activeTab < visibleTabs.length - 1 ? (
               <button
                 onClick={() => setActiveTab(t => Math.min(visibleTabs.length - 1, t + 1))}
                 className="btn-primary"
-                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}
               >
                 Weiter <ChevronRight size={16} />
               </button>
             ) : (
-              <button onClick={handleSave} className="btn-primary" style={{ background: 'linear-gradient(135deg, #007aff, #0051a8)' }}>
+              <button
+                onClick={handleSave}
+                className="btn-primary"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+                  background: 'linear-gradient(135deg, #007aff, #0051a8)',
+                }}
+              >
                 <CheckCircle2 size={14} /> Deal anlegen
               </button>
             )}
